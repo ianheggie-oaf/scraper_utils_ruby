@@ -54,7 +54,7 @@ class Scraper
         unprocessable_records = 0
         # Allow 5 + 10% unprocessable records
         too_many_unprocessable = -5.0
-        use_proxy = AUTHORITY[authority_label][:australian_proxy] && ScraperUtils.australian_proxy
+        use_proxy = AUTHORITIES[authority_label][:australian_proxy] && ScraperUtils.australian_proxy
         next if attempt > 2 && !use_proxy
 
         puts "",
