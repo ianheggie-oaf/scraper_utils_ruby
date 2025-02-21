@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "scraper_utils/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "scraper_utils_ruby"
+  spec.name = "scraper_utils"
   spec.version = ScraperUtils::VERSION
   spec.authors = ["Ian Heggie"]
   spec.email = ["ian@heggie.biz"]
@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
   spec.summary = "planningalerts scraper utilities"
   spec.description = "Utilities to help make planningalerts scrapers, " \
     "+especially multis easier to develop, run and debug."
-  spec.homepage = "https://github.com/ianheggie-oaf/scraper_utils_ruby"
+  spec.homepage = "https://github.com/ianheggie-oaf/scraper_utils"
   spec.license = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'

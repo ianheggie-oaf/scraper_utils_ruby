@@ -8,7 +8,7 @@ Utilities to help make planningalerts scrapers, especially multis easier to deve
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'scraper_utils_ruby'
+gem 'scraper_utils'
 ```
 
 And then execute:
@@ -17,7 +17,7 @@ And then execute:
 
 Or install it yourself for testing:
 
-    $ gem install scraper_utils_ruby
+    $ gem install scraper_utils
 
 ## Usage
 
@@ -253,7 +253,7 @@ which will create a git tag for the version, push git commits and tags, and push
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/ianheggie/scraper_utils_ruby
+Bug reports and pull requests are welcome on GitHub at https://github.com/ianheggie/scraper_utils
 
 ## License
 
