@@ -63,7 +63,7 @@ class Scraper
         # Change scrape to accept a use_proxy flag and return an unprocessable flag
         # it should rescue ScraperUtils::UnprocessableRecord thrown deeper in the scraping code and
         # set unprocessable
-        TechnologyOneScraper.scrape(authority_label, use_proxy) do |record, unprocessable|
+        TechnologyOneScraper.scrape(use_proxy, authority_label) do |record, unprocessable|
           unless unprocessable
             begin
               record["authority_label"] = authority_label.to_s
@@ -178,13 +178,14 @@ Then deeper in the code update:
 
 * Change scrape to accept a `use_proxy` flag and return an `unprocessable` flag
 * it should rescue ScraperUtils::UnprocessableRecord thrown deeper in the scraping code and
-  set and yield unprocessable eg: `TechnologyOneScraper.scrape(authority_label, use_proxy) do |record, unprocessable|`
+  set and yield unprocessable eg: `TechnologyOneScraper.scrape(use_proxy, authority_label) do |record, unprocessable|`
 
 ```ruby
+require "scraper_utils"
 #...
 module TechnologyOneScraper
   # Note the extra parameter: use_proxy
-  def self.scrape(authority, use_proxy)
+  def self.scrape(use_proxy, authority)
     raise "Unexpected authority: #{authority}" unless AUTHORITIES.key?(authority)
 
     scrape_period(use_proxy, AUTHORITIES[authority]) do |record, unprocessable|
