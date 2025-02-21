@@ -169,7 +169,10 @@ end
 
 if __FILE__ == $PROGRAM_NAME
   # Default to list of authorities we can't or won't fix in code, explain why
-  ENV['MORPH_EXPECT_BAD'] ||= 'wagga'
+  # wagga: url redirects and reports Application error, main site says to use NSW Planning Portal from 1 July 2021
+  #        which doesn't list any DA's for wagga wagga!
+
+  ENV["MORPH_EXPECT_BAD"] ||= "wagga"
   Scraper.run(Scraper.selected_authorities)
 end
 ```
@@ -225,10 +228,10 @@ require 'scraper_utils'
 
 # Debug an HTTP request
 ScraperUtils::DebugUtils.debug_request(
-  'GET', 
-  'https://example.com/planning-apps', 
+  "GET", 
+  "https://example.com/planning-apps", 
   parameters: { year: 2023 },
-  headers: { 'Accept' => 'application/json' }
+  headers: { "Accept" => "application/json" }
 )
 
 # Debug a web page
@@ -253,7 +256,7 @@ which will create a git tag for the version, push git commits and tags, and push
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/ianheggie/scraper_utils
+Bug reports and pull requests are welcome on GitHub at https://github.com/ianheggie-oaf/scraper_utils
 
 ## License
 
