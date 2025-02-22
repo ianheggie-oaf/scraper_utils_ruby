@@ -5,6 +5,7 @@ require "mechanize"
 require "nokogiri"
 require "webmock/rspec"
 require "openssl"
+require "rspec/mocks"
 
 RSpec.describe ScraperUtils::MechanizeUtils do
   describe ".mechanize_agent" do
@@ -137,6 +138,62 @@ RSpec.describe ScraperUtils::MechanizeUtils do
     context "when no proxy is set" do
       it "returns false" do
         expect(described_class.using_proxy?(agent)).to be false
+      end
+    end
+  end
+
+  describe ".mechanize_agent" do
+    # Existing tests...
+
+    context "with pre-request hook" do
+      let(:robots_checker) { instance_double(RobotsChecker) }
+      let(:adaptive_delay) { instance_double(AdaptiveDelay) }
+
+      before do
+        allow(RobotsChecker).to receive(:new).and_return(robots_checker)
+        allow(AdaptiveDelay).to receive(:new).and_return(adaptive_delay)
+        allow(robots_checker).to receive(:allowed?).and_return(true)
+        allow(robots_checker).to receive(:crawl_delay).and_return(0)
+        allow(adaptive_delay).to receive(:next_delay).and_return(0.0)
+      end
+
+      it "checks robots.txt before making a request" do
+        expect(robots_checker).to receive(:allowed?).with("https://example.com").and_return(true)
+        
+        agent = described_class.mechanize_agent(compliant_mode: true)
+        stub_request(:get, "https://example.com")
+        agent.get("https://example.com")
+      end
+
+      it "raises UnprocessableSite when URL is not allowed" do
+        allow(robots_checker).to receive(:allowed?).and_return(false)
+
+        agent = described_class.mechanize_agent(compliant_mode: true)
+        expect {
+          agent.get("https://example.com")
+        }.to raise_error(ScraperUtils::UnprocessableSite)
+      end
+
+      it "applies random delay when specified" do
+        agent = described_class.mechanize_agent(random_delay: 5)
+        
+        # We'll mock the rand method to return a predictable value
+        allow(agent).to receive(:rand).and_return(0.5)
+        
+        stub_request(:get, "https://example.com")
+        expect(agent).to receive(:sleep).with(be_between(0, 5))
+        
+        agent.get("https://example.com")
+      end
+
+      it "applies response-based delay when enabled" do
+        expect(adaptive_delay).to receive(:next_delay).and_return(2.0)
+
+        agent = described_class.mechanize_agent(response_delay: true)
+        stub_request(:get, "https://example.com")
+        expect(agent).to receive(:sleep).with(2.0)
+        
+        agent.get("https://example.com")
       end
     end
   end
