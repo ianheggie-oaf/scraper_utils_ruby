@@ -273,6 +273,8 @@ NOTE: You need to use ruby 3.2.2 instead of 2.5.8 to release to OTP protected ac
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/ianheggie-oaf/scraper_utils
 
+CHANGELOG.md is maintained by the author aiming to follow https://github.com/vweevers/common-changelog
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
