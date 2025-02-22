@@ -77,14 +77,14 @@ module ScraperUtils
     end
 
     def self.report_on_results(authorities, results)
-      expect_bad = ENV['MORPH_EXPECT_BAD']&.split(',')&.map(&:to_sym) || []
+      expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:to_sym) || []
 
       puts "MORPH_EXPECT_BAD=#{ENV['MORPH_EXPECT_BAD']}" if expect_bad.any?
 
       errors = []
 
       # Check for authorities that were expected to be bad but are now working
-      unexpected_working = expect_bad.select do |authority| 
+      unexpected_working = expect_bad.select do |authority|
         result = results[authority]
         result && result[:records_scraped]&.positive? && result[:error].nil?
       end
@@ -95,8 +95,8 @@ module ScraperUtils
 
       # Check for authorities with unexpected errors
       unexpected_errors = authorities
-        .select { |authority| results[authority]&.dig(:error) }
-        .reject { |authority| expect_bad.include?(authority) }
+                          .select { |authority| results[authority]&.dig(:error) }
+                          .reject { |authority| expect_bad.include?(authority) }
 
       if unexpected_errors.any?
         errors << "ERROR: Unexpected errors in: #{unexpected_errors.join(',')} (Add to MORPH_EXPECT_BAD?)"
@@ -113,8 +113,6 @@ module ScraperUtils
 
       puts "Exiting with OK status!"
     end
-
-    private
 
     def self.save_log_record(record)
       ScraperWiki.save_sqlite(
@@ -161,11 +159,11 @@ module ScraperUtils
 
     # Extracts meaningful backtrace - 3 lines from ruby/gem and max 6 in total
     def self.extract_meaningful_backtrace(error)
-      return nil unless error&.respond_to?(:backtrace) && error.backtrace
+      return nil unless error&.respond_to?(:backtrace) && error&.backtrace
 
       lines = []
       error.backtrace.each do |line|
-        lines << line if lines.length < 2 || !line.include?('/vendor/')
+        lines << line if lines.length < 2 || !line.include?("/vendor/")
         break if lines.length >= 6
       end
 

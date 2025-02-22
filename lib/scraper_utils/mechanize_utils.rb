@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'mechanize'
+require "mechanize"
 
 module ScraperUtils
   # Utilities for configuring and using Mechanize for web scraping
@@ -40,7 +40,7 @@ module ScraperUtils
     # @param page [Mechanize::Page] The web page to check
     # @return [String, nil] Maintenance message if found, otherwise nil
     def self.find_maintenance_message(page)
-      # Use Nokogiri for parsing because earlier versions of Mechanize 
+      # Use Nokogiri for parsing because earlier versions of Mechanize
       # do not support the .search method on page objects
       doc = Nokogiri::HTML(page.body)
       doc.css("h1, title").each do |element|
@@ -66,6 +66,5 @@ module ScraperUtils
           ip
         end
     end
-
   end
 end
