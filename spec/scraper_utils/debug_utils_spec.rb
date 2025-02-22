@@ -13,24 +13,28 @@ RSpec.describe ScraperUtils::DebugUtils do
 
       it 'prints request details' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_request(method, url, parameters: { key: 'value' })
         }.to output(/GET https:\/\/example.com/).to_stdout
       end
 
       it 'prints parameters' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_request(method, url, parameters: { key: 'value' })
         }.to output(/Parameters:/).to_stdout
       end
 
       it 'prints headers' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_request(method, url, headers: { 'Content-Type': 'application/json' })
         }.to output(/Headers:/).to_stdout
       end
 
       it 'prints body' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_request(method, url, body: { data: 'test' })
         }.to output(/Body:/).to_stdout
       end
@@ -41,6 +45,7 @@ RSpec.describe ScraperUtils::DebugUtils do
 
       it 'does not print anything' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_request(method, url)
         }.not_to output.to_stdout
       end
@@ -60,6 +65,7 @@ RSpec.describe ScraperUtils::DebugUtils do
         allow(page).to receive(:body).and_return('<html>Test Content</html>')
 
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_page(page, message)
         }.to output(/DEBUG: Test debug page/).to_stdout
       end
@@ -70,6 +76,7 @@ RSpec.describe ScraperUtils::DebugUtils do
         allow(page).to receive(:body).and_return('<html>Test Content</html>')
 
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_page(page, message)
         }.to output(/DEBUG: Test debug page/).to_stdout
       end
@@ -80,6 +87,7 @@ RSpec.describe ScraperUtils::DebugUtils do
 
       it 'does not print anything' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_page(page, message)
         }.not_to output.to_stdout
       end
@@ -99,6 +107,7 @@ RSpec.describe ScraperUtils::DebugUtils do
         allow(page).to receive(:at).with(selector).and_return(element)
 
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_selector(page, selector, message)
         }.to output(/DEBUG: Test selector/).to_stdout
       end
@@ -108,6 +117,7 @@ RSpec.describe ScraperUtils::DebugUtils do
         allow(page).to receive(:body).and_return('<html>Test Content</html>')
 
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_selector(page, selector, message)
         }.to output(/Element not found/).to_stdout
       end
@@ -118,6 +128,7 @@ RSpec.describe ScraperUtils::DebugUtils do
 
       it 'does not print anything' do
         expect {
+          # noinspection RubyMismatchedArgumentType
           described_class.debug_selector(page, selector, message)
         }.not_to output.to_stdout
       end

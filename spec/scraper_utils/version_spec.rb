@@ -17,7 +17,7 @@ RSpec.describe ScraperUtils::VERSION do
   end
 
   it 'matches the version in the gemspec' do
-    gemspec_path = File.expand_path('../../scraper_utils.gemspec', __dir__)
+    gemspec_path = File.expand_path('../../scraper_utils.gemspec', __dir__ || 'spec/scraper_utils')
     gemspec_content = File.read(gemspec_path)
     expect(gemspec_content).to include("spec.version = ScraperUtils::VERSION")
   end

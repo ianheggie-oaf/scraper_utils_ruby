@@ -38,58 +38,58 @@ RSpec.describe ScraperUtils::LogUtils do
     it 'logs scraping run for multiple authorities' do
       expect(ScraperWiki).to receive(:save_sqlite)
                                .with(%w[authority_label run_at],
-                                     hash_including("authority_label"=>"good_council",
-                                                      "attempt" => 1,
-                                                      "error_backtrace"=>nil,
-                                                      "error_class"=>nil,
-                                                      "error_message"=>nil,
-                                                      "records_scraped"=>10,
-                                                      "run_at"=>run_at.iso8601,
-                                                      "status"=>"successful",
-                                                      "unprocessable_records"=>0,
-                                                      "used_proxy"=>0),
+                                     hash_including("authority_label" => "good_council",
+                                                    "attempt" => 1,
+                                                    "error_backtrace" => nil,
+                                                    "error_class" => nil,
+                                                    "error_message" => nil,
+                                                    "records_scraped" => 10,
+                                                    "run_at" => run_at.iso8601,
+                                                    "status" => "successful",
+                                                    "unprocessable_records" => 0,
+                                                    "used_proxy" => 0),
                                      ScraperUtils::LogUtils::LOG_TABLE)
                                .once
       expect(ScraperWiki).to receive(:save_sqlite)
                                .with(%w[authority_label run_at],
-                                     hash_including("authority_label"=>"interrupted_council",
-                                                      "attempt" => 1,
-                                                      "error_backtrace"=>nil,
-                                                      "error_class"=>"StandardError",
-                                                      "error_message"=>"Test error",
-                                                      "records_scraped"=>5,
-                                                      "run_at"=>run_at.iso8601,
-                                                      "status"=>"interrupted",
-                                                      "unprocessable_records"=>0,
-                                                      "used_proxy"=>1),
+                                     hash_including("authority_label" => "interrupted_council",
+                                                    "attempt" => 1,
+                                                    "error_backtrace" => nil,
+                                                    "error_class" => "StandardError",
+                                                    "error_message" => "Test error",
+                                                    "records_scraped" => 5,
+                                                    "run_at" => run_at.iso8601,
+                                                    "status" => "interrupted",
+                                                    "unprocessable_records" => 0,
+                                                    "used_proxy" => 1),
                                      ScraperUtils::LogUtils::LOG_TABLE)
                                .once
       expect(ScraperWiki).to receive(:save_sqlite)
                                .with(%w[authority_label run_at],
-                                     hash_including("authority_label"=>"broken_council",
-                                                      "attempt" => 1,
-                                                      "error_backtrace"=>nil,
-                                                      "error_class"=>"StandardError",
-                                                      "error_message"=>"Test error",
-                                                      "records_scraped"=>0,
-                                                      "run_at"=>run_at.iso8601,
-                                                      "status"=>"failed",
-                                                      "unprocessable_records"=>10,
-                                                      "used_proxy"=>1),
+                                     hash_including("authority_label" => "broken_council",
+                                                    "attempt" => 1,
+                                                    "error_backtrace" => nil,
+                                                    "error_class" => "StandardError",
+                                                    "error_message" => "Test error",
+                                                    "records_scraped" => 0,
+                                                    "run_at" => run_at.iso8601,
+                                                    "status" => "failed",
+                                                    "unprocessable_records" => 10,
+                                                    "used_proxy" => 1),
                                      ScraperUtils::LogUtils::LOG_TABLE)
                                .once
       expect(ScraperWiki).to receive(:save_sqlite)
                                .with(%w[authority_label run_at],
-                                     hash_including("authority_label"=>"empty_council",
-                                                      "attempt" => 1,
-                                                      "error_backtrace"=>nil,
-                                                      "error_class"=>nil,
-                                                      "error_message"=>nil,
-                                                      "records_scraped"=>0,
-                                                      "run_at"=>run_at.iso8601,
-                                                      "status"=>"failed",
-                                                      "unprocessable_records"=>0,
-                                                      "used_proxy"=>1),
+                                     hash_including("authority_label" => "empty_council",
+                                                    "attempt" => 1,
+                                                    "error_backtrace" => nil,
+                                                    "error_class" => nil,
+                                                    "error_message" => nil,
+                                                    "records_scraped" => 0,
+                                                    "run_at" => run_at.iso8601,
+                                                    "status" => "failed",
+                                                    "unprocessable_records" => 0,
+                                                    "used_proxy" => 1),
                                      ScraperUtils::LogUtils::LOG_TABLE)
                                .once
       expect(ScraperWiki).to receive(:save_sqlite)
@@ -114,6 +114,7 @@ RSpec.describe ScraperUtils::LogUtils do
     it 'raises error for invalid start time' do
       deliberately_not_time = "not a time object"
       expect {
+        # noinspection RubyMismatchedArgumentType
         described_class.log_scraping_run(deliberately_not_time, 1, authorities, results)
       }.to raise_error(ArgumentError, "Invalid start time")
     end
@@ -127,12 +128,7 @@ RSpec.describe ScraperUtils::LogUtils do
     it 'handles authorities with no results' do
       incomplete_results = { good_council: {} }
 
-      [
-        "good_council",
-        "interrupted_council",
-        "broken_council",
-        "empty_council"
-      ].each do |authority_label|
+      %w[good_council interrupted_council broken_council empty_council].each do |authority_label|
         expect(ScraperWiki).to receive(:save_sqlite)
                                  .with(%w[authority_label run_at],
                                        hash_including("authority_label" => authority_label,
@@ -169,7 +165,7 @@ RSpec.describe ScraperUtils::LogUtils do
       summary_record = nil
 
       # Capture the summary record when it's saved
-      allow(ScraperWiki).to receive(:save_sqlite) do |keys, record, table|
+      allow(ScraperWiki).to receive(:save_sqlite) do |_keys, record, table|
         summary_record = record if table == ScraperUtils::LogUtils::SUMMARY_TABLE
       end
 
@@ -207,21 +203,21 @@ RSpec.describe ScraperUtils::LogUtils do
       let(:complex_error) do
         error = StandardError.new("Test error")
         error.set_backtrace([
-          # Ruby/gem internal lines (should be limited to 3)
-          "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
-          "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1272:in `open'",
-          "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1273:in `start'",
-          "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:711:in `start'",
-          "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:641:in `connection_for'",
-          "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:941:in `request'",
-          "/app/vendor/bundle/ruby/3.2.0/gems/mechanize-2.8.5/lib/mechanize/http/agent.rb:284:in `fetch'",
-          
-          # Application-specific lines
-          "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
-        ])
+                              # Ruby/gem internal lines (should be limited to 3)
+                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
+                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1272:in `open'",
+                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1273:in `start'",
+                              "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:711:in `start'",
+                              "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:641:in `connection_for'",
+                              "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:941:in `request'",
+                              "/app/vendor/bundle/ruby/3.2.0/gems/mechanize-2.8.5/lib/mechanize/http/agent.rb:284:in `fetch'",
+
+                              # Application-specific lines
+                              "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
+                            ])
         error
       end
 
@@ -237,28 +233,28 @@ RSpec.describe ScraperUtils::LogUtils do
 
       it 'removes Ruby and gem internal traces and limits total lines' do
         log_record = nil
-        
+
         # Capture the log record when it's saved
-        allow(ScraperWiki).to receive(:save_sqlite) do |keys, record, table|
+        allow(ScraperWiki).to receive(:save_sqlite) do |_keys, record, table|
           log_record = record if table == ScraperUtils::LogUtils::LOG_TABLE
         end
 
         described_class.log_scraping_run(run_at, 1, [:complex_council], results)
 
         expect(log_record).not_to be_nil
-        
+
         # Split the trace into lines
         trace_lines = log_record["error_backtrace"].split("\n")
-        
+
         # Check total number of lines is limited to 6
         expect(trace_lines.length).to be <= 6
-        
+
         # Check application-specific lines are present
         expect(log_record["error_backtrace"]).to include("authority_scraper.rb:59:in `scrape_api_period'")
         expect(log_record["error_backtrace"]).to include("authority_scraper.rb:30:in `scrape_period'")
         expect(log_record["error_backtrace"]).to include("authority_scraper.rb:9:in `scrape'")
         expect(log_record["error_backtrace"]).to include("authority_scraper.rb:42:in `main'")
-        
+
         # Verify that vendor/Ruby lines are limited
         vendor_lines = trace_lines.select { |line| line.include?('/vendor/') }
         expect(vendor_lines.length).to be <= 3
@@ -271,20 +267,20 @@ RSpec.describe ScraperUtils::LogUtils do
       let(:error) do
         error = StandardError.new("Test error")
         error.set_backtrace([
-          "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
-          "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `open'",
-          "/app/vendor/bundle/ruby/3.2.0/gems/mechanize-2.8.5/lib/mechanize/http/agent.rb:284:in `fetch'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
-          "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
-        ])
+                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
+                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `open'",
+                              "/app/vendor/bundle/ruby/3.2.0/gems/mechanize-2.8.5/lib/mechanize/http/agent.rb:284:in `fetch'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
+                              "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
+                            ])
         error
       end
 
       it 'removes Ruby and gem internal traces' do
         meaningful_trace = described_class.extract_meaningful_backtrace(error)
-        
+
         expect(meaningful_trace).to include("authority_scraper.rb:59:in `scrape_api_period'")
         expect(meaningful_trace).to include("authority_scraper.rb:30:in `scrape_period'")
         expect(meaningful_trace).to include("authority_scraper.rb:9:in `scrape'")
@@ -302,7 +298,7 @@ RSpec.describe ScraperUtils::LogUtils do
       it 'returns nil' do
         error = StandardError.new("Test error")
         error.set_backtrace(nil)
-        
+
         expect(described_class.extract_meaningful_backtrace(error)).to be_nil
       end
     end
@@ -310,7 +306,7 @@ RSpec.describe ScraperUtils::LogUtils do
 
   describe '.report_on_results' do
     let(:authorities) { [:good_council, :bad_council, :broken_council] }
-    
+
     context 'when all authorities work as expected' do
       let(:results) do
         {
@@ -322,10 +318,10 @@ RSpec.describe ScraperUtils::LogUtils do
 
       it 'exits with OK status when no unexpected conditions' do
         ENV['MORPH_EXPECT_BAD'] = 'bad_council'
-        
+
         expect { described_class.report_on_results(authorities, results) }
           .to output(/Exiting with OK status!/).to_stdout
-        
+
         ENV['MORPH_EXPECT_BAD'] = nil
       end
     end
@@ -341,10 +337,10 @@ RSpec.describe ScraperUtils::LogUtils do
 
       it 'raises an error with a warning about removing from EXPECT_BAD' do
         ENV['MORPH_EXPECT_BAD'] = 'bad_council'
-        
+
         expect { described_class.report_on_results(authorities, results) }
           .to raise_error(RuntimeError, /WARNING: Remove bad_council from EXPECT_BAD/)
-        
+
         ENV['MORPH_EXPECT_BAD'] = nil
       end
     end
@@ -354,19 +350,19 @@ RSpec.describe ScraperUtils::LogUtils do
         {
           good_council: { records_scraped: 10, error: nil },
           bad_council: { records_scraped: 0, error: nil },
-          broken_council: { 
-            records_scraped: 0, 
-            error: StandardError.new("Unexpected error") 
+          broken_council: {
+            records_scraped: 0,
+            error: StandardError.new("Unexpected error")
           }
         }
       end
 
       it 'raises an error with details about unexpected errors' do
         ENV['MORPH_EXPECT_BAD'] = 'bad_council'
-        
+
         expect { described_class.report_on_results(authorities, results) }
           .to raise_error(RuntimeError, /ERROR: Unexpected errors in: broken_council/)
-        
+
         ENV['MORPH_EXPECT_BAD'] = nil
       end
     end

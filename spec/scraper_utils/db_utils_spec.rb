@@ -110,7 +110,7 @@ RSpec.describe ScraperUtils::DbUtils do
     context 'with authority_label' do
       it 'uses authority_label in primary key' do
         record = valid_record.merge('authority_label' => 'test_council')
-        expect(ScraperWiki).to receive(:save_sqlite).with(['authority_label', 'council_reference'], record)
+        expect(ScraperWiki).to receive(:save_sqlite).with(%w[authority_label council_reference], record)
         described_class.save_record(record)
       end
     end
