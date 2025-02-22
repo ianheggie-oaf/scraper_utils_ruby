@@ -7,9 +7,10 @@ WARNING: This is still under development! Breaking changes may occur in version 
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Add these line to your application's Gemfile:
 
 ```ruby
+gem "scraperwiki", git: "https://github.com/openaustralia/scraperwiki-ruby.git", branch: "morph_defaults"
 gem 'scraper_utils'
 ```
 
@@ -23,7 +24,7 @@ Or install it yourself for testing:
 
 ## Usage
 
-### Example updated `scraper.rb` file
+### Environment variables
 
 Optionally filter authorities via environment variable in morph > scraper > settings or 
 in your dev environment:
@@ -32,7 +33,9 @@ in your dev environment:
 export MORPH_AUTHORITIES=noosa,wagga
 ```
 
-Update `scraper.rb` as follows
+### Example updated `scraper.rb` file
+
+Update your `scraper.rb` as per the following example:
 
 ```ruby
 #!/usr/bin/env ruby
@@ -179,7 +182,7 @@ if __FILE__ == $PROGRAM_NAME
 end
 ```
 
-Then deeper in the code update:
+Then deeper in your code update:
 
 * Change scrape to accept a `use_proxy` flag and return an `unprocessable` flag
 * it should rescue ScraperUtils::UnprocessableRecord thrown deeper in the scraping code and
@@ -219,12 +222,14 @@ end
 
 ### Debugging Techniques
 
-If you set
+The following code will print dbugging info if you set:
+
 ```bash
 export DEBUG=1
 ```
 
 Add the following immediately before requesting or examining pages
+
 ```ruby
 require 'scraper_utils'
 
@@ -263,3 +268,4 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/ianheg
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
