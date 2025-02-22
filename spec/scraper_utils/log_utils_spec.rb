@@ -144,17 +144,20 @@ RSpec.describe ScraperUtils::LogUtils do
                 ScraperUtils::LogUtils::LOG_TABLE)
           .once
       end
-      expect(ScraperWiki).to receive(:save_sqlite)
+      expect(ScraperWiki)
+        .to receive(:save_sqlite)
         .with(["run_at"],
-              hash_including("duration" => 123.0,
-                             "attempt" => 1,
-                             "failed" => "good_council,interrupted_council,broken_council,empty_council",
-                             "failed_count" => 4,
-                             "interrupted" => "",
-                             "interrupted_count" => 0,
-                             "run_at" => run_at.iso8601,
-                             "successful" => "",
-                             "successful_count" => 0),
+              hash_including(
+                "duration" => 123.0,
+                "attempt" => 1,
+                "failed" => "good_council,interrupted_council,broken_council,empty_council",
+                "failed_count" => 4,
+                "interrupted" => "",
+                "interrupted_count" => 0,
+                "run_at" => run_at.iso8601,
+                "successful" => "",
+                "successful_count" => 0
+              ),
               ScraperUtils::LogUtils::SUMMARY_TABLE)
         .once
 
@@ -184,17 +187,15 @@ RSpec.describe ScraperUtils::LogUtils do
     end
 
     it "performs cleanup_old_records once per day" do
-      expect(ScraperWiki).to receive(:sqliteexecute)
-        .with(
-          "DELETE FROM #{ScraperUtils::LogUtils::SUMMARY_TABLE} WHERE date(run_at) < date(?)",
-          [be_a(String)]
-        ).exactly(1).times
-      expect(ScraperWiki).to receive(:sqliteexecute)
-        .with(
-          "DELETE FROM #{ScraperUtils::LogUtils::LOG_TABLE} WHERE date(run_at) < date(?)",
-          [be_a(String)]
-        ).exactly(1).times
-
+      [
+        ScraperUtils::LogUtils::SUMMARY_TABLE,
+        ScraperUtils::LogUtils::LOG_TABLE
+      ].each do |table|
+        expect(ScraperWiki)
+          .to receive(:sqliteexecute)
+          .with("DELETE FROM #{table} WHERE date(run_at) < date(?)", [be_a(String)])
+          .exactly(1).times
+      end
       described_class.cleanup_old_records(force: true)
       described_class.cleanup_old_records
     end
@@ -202,22 +203,24 @@ RSpec.describe ScraperUtils::LogUtils do
     context "with a complex backtrace" do
       let(:complex_error) do
         error = StandardError.new("Test error")
-        error.set_backtrace([
-                              # Ruby/gem internal lines (should be limited to 3)
-                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
-                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1272:in `open'",
-                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1273:in `start'",
-                              "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:711:in `start'",
-                              "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:641:in `connection_for'",
-                              "/app/vendor/bundle/ruby/3.2.0/gems/net-http-persistent-4.0.5/lib/net/http/persistent.rb:941:in `request'",
-                              "/app/vendor/bundle/ruby/3.2.0/gems/mechanize-2.8.5/lib/mechanize/http/agent.rb:284:in `fetch'",
+        error.set_backtrace(
+          [
+            # Ruby/gem internal lines (should be limited to 3)
+            "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
+            "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1272:in `open'",
+            "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1273:in `start'",
+            "/app/vendor/bundle/ruby/3.2.0/gems/n.../net/http/persistent.rb:711:in `start'",
+            "/app/vendor/bundle/ruby/3.2.0/gems/n.../http/persistent.rb:641:in `connection_for'",
+            "/app/vendor/bundle/ruby/3.2.0/gems/n.../net/http/persistent.rb:941:in `request'",
+            "/app/vendor/bundle/ruby/3.2.0/gems/m.../mechanize/http/agent.rb:284:in `fetch'",
 
-                              # Application-specific lines
-                              "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
-                            ])
+            # Application-specific lines
+            "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
+          ]
+        )
         error
       end
 
@@ -243,17 +246,17 @@ RSpec.describe ScraperUtils::LogUtils do
 
         expect(log_record).not_to be_nil
 
-        # Split the trace into lines
-        trace_lines = log_record["error_backtrace"].split("\n")
+        trace = log_record["error_backtrace"]
+        trace_lines = trace.split("\n")
 
         # Check total number of lines is limited to 6
         expect(trace_lines.length).to be <= 6
 
         # Check application-specific lines are present
-        expect(log_record["error_backtrace"]).to include("authority_scraper.rb:59:in `scrape_api_period'")
-        expect(log_record["error_backtrace"]).to include("authority_scraper.rb:30:in `scrape_period'")
-        expect(log_record["error_backtrace"]).to include("authority_scraper.rb:9:in `scrape'")
-        expect(log_record["error_backtrace"]).to include("authority_scraper.rb:42:in `main'")
+        expect(trace).to include("authority_scraper.rb:59:in `scrape_api_period'")
+        expect(trace).to include("authority_scraper.rb:30:in `scrape_period'")
+        expect(trace).to include("authority_scraper.rb:9:in `scrape'")
+        expect(trace).to include("authority_scraper.rb:42:in `main'")
 
         # Verify that vendor/Ruby lines are limited
         vendor_lines = trace_lines.select { |line| line.include?("/vendor/") }
@@ -266,15 +269,17 @@ RSpec.describe ScraperUtils::LogUtils do
     context "with a complex backtrace" do
       let(:error) do
         error = StandardError.new("Test error")
-        error.set_backtrace([
-                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
-                              "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `open'",
-                              "/app/vendor/bundle/ruby/3.2.0/gems/mechanize-2.8.5/lib/mechanize/http/agent.rb:284:in `fetch'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
-                              "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
-                            ])
+        error.set_backtrace(
+          [
+            "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `initialize'",
+            "/app/vendor/ruby-3.2.2/lib/ruby/3.2.0/net/http.rb:1271:in `open'",
+            "/app/vendor/bundle/ruby/3.2.0/gems/m.../lib/m.../http/agent.rb:284:in `fetch'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:59:in `scrape_api_period'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:30:in `scrape_period'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:9:in `scrape'",
+            "/app/lib/masterview_scraper/authority_scraper.rb:42:in `main'"
+          ]
+        )
         error
       end
 

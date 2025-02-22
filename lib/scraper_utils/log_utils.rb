@@ -99,7 +99,8 @@ module ScraperUtils
                           .reject { |authority| expect_bad.include?(authority) }
 
       if unexpected_errors.any?
-        errors << "ERROR: Unexpected errors in: #{unexpected_errors.join(',')} (Add to MORPH_EXPECT_BAD?)"
+        errors << "ERROR: Unexpected errors in: #{unexpected_errors.join(',')} " \
+          "(Add to MORPH_EXPECT_BAD?)"
         unexpected_errors.each do |authority|
           error = results[authority][:error]
           errors << "  #{authority}: #{error.class} - #{error.message}"
@@ -159,7 +160,7 @@ module ScraperUtils
 
     # Extracts meaningful backtrace - 3 lines from ruby/gem and max 6 in total
     def self.extract_meaningful_backtrace(error)
-      return nil unless error&.respond_to?(:backtrace) && error&.backtrace
+      return nil unless error.respond_to?(:backtrace) && error&.backtrace
 
       lines = []
       error.backtrace.each do |line|
