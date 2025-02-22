@@ -10,13 +10,13 @@ RSpec.describe RobotsChecker do
 
   describe "#initialize" do
     it "extracts the correct user agent prefix" do
-      expect(robots_checker.instance_variable_get(:@user_agent)).to eq("scraperwiki/1.0.0")
+      expect(robots_checker.instance_variable_get(:@user_agent)).to eq("scraperutils/1.0.0")
     end
 
     context "with different user agent formats" do
       it "handles user agent without 'compatible' prefix" do
         checker = described_class.new("ScraperUtils/1.2.3")
-        expect(checker.instance_variable_get(:@user_agent)).to eq("scraperwiki/1.2.3")
+        expect(checker.instance_variable_get(:@user_agent)).to eq("scraperutils/1.2.3")
       end
     end
   end

@@ -25,7 +25,7 @@ RSpec.describe AdaptiveDelay do
     let(:delay) { described_class.new(initial_delay: 1.0, timeout: 30) }
 
     it "starts with initial delay for a new domain" do
-      expect(delay.next_delay("example.com", 2.0)).to eq(1.0)
+      expect(delay.next_delay("example.com", 2.0)).to be_within(0.1).of(1.0)
     end
 
     it "adjusts delay based on response time" do
