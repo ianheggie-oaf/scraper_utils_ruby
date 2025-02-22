@@ -3,6 +3,8 @@ ScraperUtils (Ruby)
 
 Utilities to help make planningalerts scrapers, especially multis easier to develop, run and debug.
 
+WARNING: This is still under development! Breaking changes may occur in version 0!
+
 ## Installation
 
 Add this line to your application's Gemfile:
