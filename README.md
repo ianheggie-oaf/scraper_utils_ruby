@@ -24,6 +24,12 @@ Or install it yourself for testing:
 
 ## Usage
 
+### Ruby Versions
+
+This gem is designed to be compatible the latest ruby supported by morph.io - other versions may work, but not tested:
+  * ruby 3.2.2 - requires the `platform` file to contain `heroku_18` in the scraper
+  * ruby 2.5.8 - `heroku_16` (the default)
+
 ### Environment variables
 
 Optionally filter authorities via environment variable in morph > scraper > settings or 
@@ -260,6 +266,8 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 To release a new version, update the version number in `version.rb`, and
 then run `bundle exec rake release`,
 which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+NOTE: You need to use ruby 3.2.2 instead of 2.5.8 to release to OTP protected accounts.
 
 ## Contributing
 
