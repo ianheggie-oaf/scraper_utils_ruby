@@ -13,7 +13,10 @@ class RobotsChecker
   # But NOT:
   # User-agent: *
   def initialize(user_agent)
-    @user_agent = (user_agent.match(/compatible;\s+([^;\s]+)/i)&.[](1)&.strip || user_agent)&.downcase
+    @user_agent = (
+      user_agent.match(/compatible;\s+([^;\s]+)/i)&.[](1)&.strip ||
+        user_agent
+    )&.downcase
     if ENV["DEBUG"]
       puts "Checking robots.txt for user agent prefix: #{@user_agent} (case insensitive)"
     end
@@ -43,7 +46,7 @@ class RobotsChecker
     if rules[:our_rules].any?
       # We were mentioned specifically, follow our rules
       rules[:our_rules].each do |rule|
-        return false if path.start_with?(rule)
+        return false if path&.start_with?(rule)
       end
     end
 
@@ -79,14 +82,11 @@ class RobotsChecker
   # Parse robots.txt content into structured rules
   # Only collects rules for our specific user agent and generic crawl-delay
   # @param content [String] The robots.txt content
-  # @return [Hash] Hash containing :our_rules, :our_delay, and :generic_delay
+  # @return [Hash] Hash containing :our_rules, :our_delay and :generic_delay
   def parse_robots_txt(content)
-    rules = {
-      our_rules: [], # Disallow rules specific to our user agent
-      our_delay: nil, # Crawl-delay specific to our user agent
-      generic_delay: nil # Generic crawl-delay (user-agent: *)
-    }
-
+    our_rules = []
+    our_delay = nil
+    generic_delay = nil
     current_agent = nil
     content.each_line do |line|
       line = line.strip.downcase
@@ -103,20 +103,24 @@ class RobotsChecker
         path = line.split(":", 2).last.strip
         next if path.empty?
 
-        rules[:our_rules] << path if current_agent.start_with?(@user_agent.downcase)
+        our_rules << path if current_agent.start_with?(@user_agent.downcase)
       elsif line.start_with?("crawl-delay:")
         delay = line.split(":", 2).last.strip.to_i
-        if delay > 0
+        if delay.positive?
           # Changed to prefix match
           if current_agent.start_with?(@user_agent.downcase)
-            rules[:our_delay] = delay
+            our_delay = delay
           elsif current_agent == "*"
-            rules[:generic_delay] = delay
+            generic_delay = delay
           end
         end
       end
     end
 
-    rules
+    {
+      our_rules: our_rules, # Disallow rules specific to our user agent
+      our_delay: our_delay, # Crawl-delay specific to our user agent
+      generic_delay: generic_delay # Generic crawl-delay (user-agent: *)
+    }
   end
 end

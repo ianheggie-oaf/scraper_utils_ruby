@@ -11,11 +11,16 @@ module ScraperUtils
     #
     # @param use_proxy [True] Use the Australian proxy
     # @param timeout [Integer, nil] Timeout for agent connections
-    # @param compliant_mode [Boolean] Comply with recommended headers and behaviour to be more acceptable
-    # @param random_delay [Integer] Use exponentially weighted random delayed (roughly averaging random_delay seconds)
-    # @param response_delay [True] Delay requests based on response time to be kind to overloaded servers
-    # @param disable_ssl_certificate_check [True] Disabled SSL verification for old / incorrect certificates
-    # @param australian_proxy [True] Flags the Australian proxy should be used if available and it is not the 3rd attempt
+    # @param compliant_mode [Boolean] Comply with recommended headers and behaviour
+    #        to be more acceptable
+    # @param random_delay [Integer] Use exponentially weighted random delayed
+    #        (roughly averaging random_delay seconds)
+    # @param response_delay [True] Delay requests based on response time to be kind to
+    #        overloaded servers
+    # @param disable_ssl_certificate_check [True] Disabled SSL verification for old /
+    #        incorrect certificates
+    # @param australian_proxy [True] Flags the Australian proxy should be used if available,
+    #        and not 3rd attempt
     # @return [Mechanize] Configured Mechanize agent
     def self.mechanize_agent(use_proxy: false,
                              timeout: nil,

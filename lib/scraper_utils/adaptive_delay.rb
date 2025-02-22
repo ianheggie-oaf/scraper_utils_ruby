@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Manages calculating the next delay based on previous response times
 class AdaptiveDelay
   DEFAULT_TIMEOUT = 30 # Presumed default timeout for Mechanize
 
@@ -14,11 +15,11 @@ class AdaptiveDelay
   def next_delay(domain, response_time)
     current = @delays[domain] || @initial
     delay = ((4.0 * current) + response_time) / 5.0
-    delay = [[@initial, delay].max, @max_delay].min
+    delay = delay.clamp(@initial, @max_delay)
 
     if ENV["DEBUG"] && delay != current
-      puts "Adaptive delay for #{domain} changing from #{current.round(2)}s to #{delay.round(2)}s " \
-           "(response_time: #{response_time.round(2)}s)"
+      puts "Adaptive delay for #{domain} changing from #{current.round(2)}s to " \
+           "#{delay.round(2)}s (response_time: #{response_time.round(2)}s)"
     end
 
     @delays[domain] = delay
