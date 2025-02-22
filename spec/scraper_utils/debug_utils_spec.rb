@@ -29,7 +29,7 @@ RSpec.describe ScraperUtils::DebugUtils do
         expect do
           # noinspection RubyMismatchedArgumentType
           described_class.debug_request(method, url,
-                                        headers: { 'Content-Type': "application/json" })
+                                        headers: { "Content-Type": "application/json" })
         end.to output(/Headers:/).to_stdout
       end
 

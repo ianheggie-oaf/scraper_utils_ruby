@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "scraper_utils/adaptive_delay"
 require "scraper_utils/authority_utils"
 require "scraper_utils/db_utils"
 require "scraper_utils/debug_utils"

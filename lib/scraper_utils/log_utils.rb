@@ -79,7 +79,7 @@ module ScraperUtils
     def self.report_on_results(authorities, results)
       expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:to_sym) || []
 
-      puts "MORPH_EXPECT_BAD=#{ENV['MORPH_EXPECT_BAD']}" if expect_bad.any?
+      puts "MORPH_EXPECT_BAD=#{ENV.fetch('MORPH_EXPECT_BAD', nil)}" if expect_bad.any?
 
       errors = []
 
@@ -100,7 +100,7 @@ module ScraperUtils
 
       if unexpected_errors.any?
         errors << "ERROR: Unexpected errors in: #{unexpected_errors.join(',')} " \
-          "(Add to MORPH_EXPECT_BAD?)"
+                  "(Add to MORPH_EXPECT_BAD?)"
         unexpected_errors.each do |authority|
           error = results[authority][:error]
           errors << "  #{authority}: #{error.class} - #{error.message}"

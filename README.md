@@ -27,21 +27,43 @@ Or install it yourself for testing:
 ### Ruby Versions
 
 This gem is designed to be compatible the latest ruby supported by morph.io - other versions may work, but not tested:
-  * ruby 3.2.2 - requires the `platform` file to contain `heroku_18` in the scraper
-  * ruby 2.5.8 - `heroku_16` (the default)
+
+* ruby 3.2.2 - requires the `platform` file to contain `heroku_18` in the scraper
+* ruby 2.5.8 - `heroku_16` (the default)
 
 ### Environment variables
 
-Optionally filter authorities via environment variable in morph > scraper > settings or 
+Optionally filter authorities via environment variable in morph > scraper > settings or
 in your dev environment:
 
 ```bash
 export MORPH_AUTHORITIES=noosa,wagga
 ```
 
+### Extra Mechanize options
+
+Add `client_options` to your AUTHORITIES configuration and move any of the following settings into it:
+
+* `timeout: Integer` - Timeout for agent connections
+* `australian_proxy: true` - Use the MORPH_AUSTRALIAN_PROXY as proxy
+* `disable_ssl_certificate_check: true` - Disabled SSL verification for old / incorrect certificates
+
+You can also add the following to (hopefully) be more acceptable and not be blocked by anti scraping technology:
+
+* `compliant_mode: true` - Comply with recommended headers and behaviour to be more acceptable
+* `random_delay: Integer` - Use exponentially weighted random delays to be less Bot like (roughly averaging random_delay
+  seconds) - try 10 seconds to start with
+* `response_delay: true` - Delay requests based on response time to be kind to overloaded servers
+
+Then adjust your code to accept client_options and pass then through to:
+`ScraperUtils::MechanizeUtils.mechanize_agent(client_options || {})`
+to receive a `Mexhanize::Agent` configured accordingly.
+
+The delays use a Mechanise hook to wrap all requests so you don't need to do anything else
+
 ### Example updated `scraper.rb` file
 
-Update your `scraper.rb` as per the following example:
+Update your `scraper.rb` as per the following example for basic utilities:
 
 ```ruby
 #!/usr/bin/env ruby
@@ -74,7 +96,7 @@ class Scraper
         # Change scrape to accept a use_proxy flag and return an unprocessable flag
         # it should rescue ScraperUtils::UnprocessableRecord thrown deeper in the scraping code and
         # set unprocessable
-        TechnologyOneScraper.scrape(use_proxy, authority_label) do |record, unprocessable|
+        TechnologyOneScraper.scrape(authority_label, use_proxy: use_proxy) do |record, unprocessable|
           unless unprocessable
             begin
               record["authority_label"] = authority_label.to_s
@@ -199,29 +221,28 @@ require "scraper_utils"
 #...
 module TechnologyOneScraper
   # Note the extra parameter: use_proxy
-  def self.scrape(use_proxy, authority)
+  def self.scrape(authority, use_proxy: false)
     raise "Unexpected authority: #{authority}" unless AUTHORITIES.key?(authority)
 
-    scrape_period(use_proxy, AUTHORITIES[authority]) do |record, unprocessable|
+    scrape_period(use_proxy: use_proxy, **AUTHORITIES[authority]) do |record, unprocessable|
       yield record, unprocessable
     end
   end
-  
+
   # ... rest of code ...
 
   # Note the extra parameters: use_proxy and timeout
-  def self.scrape_period(use_proxy,
-    url:, period:, webguest: "P1.WEBGUEST", disable_ssl_certificate_check: false,
-    australian_proxy: false, timeout: nil
+  def self.scrape_period(url:, period:, webguest: "P1.WEBGUEST",
+                         use_proxy: false, client_options: {}
   )
-    agent = ScraperUtils::MechanizeUtils.mechanize_agent(use_proxy: use_proxy, timeout: timeout)
-    agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if disable_ssl_certificate_check
-    
+    agent = ScraperUtils::MechanizeUtils.mechanize_agent(use_proxy:use_proxy, **client_options)
+
     # ... rest of code ...
 
     # Update yield to return unprocessable as well as record
 
   end
+
   # ... rest of code ...
 end
 ```
@@ -241,8 +262,8 @@ require 'scraper_utils'
 
 # Debug an HTTP request
 ScraperUtils::DebugUtils.debug_request(
-  "GET", 
-  "https://example.com/planning-apps", 
+  "GET",
+  "https://example.com/planning-apps",
   parameters: { year: 2023 },
   headers: { "Accept" => "application/json" }
 )
@@ -265,7 +286,8 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 To release a new version, update the version number in `version.rb`, and
 then run `bundle exec rake release`,
-which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+which will create a git tag for the version, push git commits and tags, and push the `.gem` file
+to [rubygems.org](https://rubygems.org).
 
 NOTE: You need to use ruby 3.2.2 instead of 2.5.8 to release to OTP protected accounts.
 

@@ -27,7 +27,7 @@ gem "rake", platform && (platform == :heroku16 ? "~> 12.3.3" : "~> 13.0")
 gem "rspec", platform && (platform == :heroku16 ? "~> 3.9.0" : "~> 3.12")
 gem "rubocop", platform && (platform == :heroku16 ? "~> 0.80.0" : "~> 1.57")
 gem "simplecov", platform && (platform == :heroku16 ? "~> 0.18.0" : "~> 0.22.0")
-# gem "simplecov-console" listed in gemspec
+gem "simplecov-console"
 gem "webmock", platform && (platform == :heroku16 ? "~> 3.14.0" : "~> 3.19.0")
 
 gemspec

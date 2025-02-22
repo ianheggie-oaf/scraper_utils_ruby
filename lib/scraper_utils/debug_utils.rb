@@ -17,18 +17,9 @@ module ScraperUtils
       return unless ScraperUtils.debug?
 
       puts "\n🔍 #{method.upcase} #{url}"
-      if parameters
-        puts "Parameters:"
-        puts JSON.pretty_generate(parameters)
-      end
-      if headers
-        puts "Headers:"
-        puts JSON.pretty_generate(headers)
-      end
-      return unless body
-
-      puts "Body:"
-      puts JSON.pretty_generate(body)
+      puts "Parameters:", JSON.pretty_generate(parameters) if parameters
+      puts "Headers:", JSON.pretty_generate(headers) if headers
+      puts "Body:", JSON.pretty_generate(body) if body
     end
 
     # Logs details of a web page when debug mode is enabled
