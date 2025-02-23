@@ -33,7 +33,23 @@ This gem is designed to be compatible the latest ruby supported by morph.io - ot
 
 ### Environment variables
 
-Optionally filter authorities via environment variable in morph > scraper > settings or
+#### `MORPH_AUSTRALIAN_PROXY`
+
+On morph.io set the environment variable `MORPH_AUSTRALIAN_PROXY` to
+`http://morph:password@au.proxy.oaf.org.au:8888`
+replacing password with the real password.
+Alternatively enter your own AUSTRALIAN proxy details when testing.
+
+#### `MORPH_EXPECT_BAD`
+
+To avoid morph complaining about sites that are known toi be bad,
+but you want them to keep being tested, list them on `MORPH_EXPECT_BAD`, for example:
+
+
+
+#### `MORPH_AUTHORITIES`
+Optionally filter authorities for multi authority scrapers
+via environment variable in morph > scraper > settings or
 in your dev environment:
 
 ```bash
@@ -202,8 +218,7 @@ end
 
 if __FILE__ == $PROGRAM_NAME
   # Default to list of authorities we can't or won't fix in code, explain why
-  # wagga: url redirects and reports Application error, main site says to use NSW Planning Portal from 1 July 2021
-  #        which doesn't list any DA's for wagga wagga!
+  # wagga: url redirects and then reports Application error
 
   ENV["MORPH_EXPECT_BAD"] ||= "wagga"
   Scraper.run(Scraper.selected_authorities)
