@@ -103,7 +103,7 @@ class RobotsChecker
         path = line.split(":", 2).last.strip
         next if path.empty?
 
-        our_rules << path if current_agent.start_with?(@user_agent.downcase)
+        our_rules << path if @user_agent.downcase.start_with?(current_agent)
       elsif line.start_with?("crawl-delay:")
         delay = line.split(":", 2).last.strip.to_i
         if delay.positive?

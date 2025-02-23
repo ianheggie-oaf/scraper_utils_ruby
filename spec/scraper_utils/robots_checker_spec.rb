@@ -74,15 +74,15 @@ RSpec.describe RobotsChecker do
       end
 
       it "allows access to non-blocked paths" do
-        expect(robots_checker.allowed?("https://example.com/allowed/page")).to be true
+        expect(robots_checker.allowed?("https://example.test/allowed/page")).to be true
       end
 
       it "blocks access to wildcard disallowed paths" do
-        expect(robots_checker.allowed?("https://example.com/blocked/page")).to be false
+        expect(robots_checker.allowed?("https://example.test/blocked/page")).to be false
       end
 
       it "returns generic crawl delay" do
-        robots_checker.allowed?("https://example.com/")
+        robots_checker.allowed?("https://example.test/")
         expect(robots_checker.crawl_delay).to eq(5)
       end
     end
@@ -93,11 +93,11 @@ RSpec.describe RobotsChecker do
       end
 
       it "allows access by default" do
-        expect(robots_checker.allowed?("https://example.com/any/path")).to be true
+        expect(robots_checker.allowed?("https://example.org/any/path")).to be true
       end
 
       it "returns nil crawl delay" do
-        robots_checker.allowed?("https://example.com/")
+        robots_checker.allowed?("https://example.org/")
         expect(robots_checker.crawl_delay).to be_nil
       end
     end
@@ -116,7 +116,7 @@ RSpec.describe RobotsChecker do
       end
 
       it "prioritizes most specific user agent rules" do
-        expect(robots_checker.allowed?("https://example.com/specific/page")).to be false
+        expect(robots_checker.allowed?("https://example.biz/specific/page")).to be false
         expect(robots_checker.crawl_delay).to eq(15)
       end
     end

@@ -71,19 +71,23 @@ module ScraperUtils
       robots_checker = RobotsChecker.new(user_agent)
       adaptive_delay = AdaptiveDelay.new
 
-      # Add pre-request hook to check robots.txt
-      agent.pre_connect_hooks << lambda do |_, request|
+      connection_started_at = Time.new
+
+      agent.pre_connect_hooks << lambda do |_agent, request|
+        connection_started_at = Time.new
+        puts "Pre Connect request: #{request.inspect}"
+        # Am I specifically blocked?
         url = request.uri.to_s
         unless robots_checker.allowed?(url) && compliant_mode
           raise ScraperUtils::UnprocessableSite,
                 "URL not allowed by robots.txt specific rules: #{url}"
         end
+      end
 
-        domain = "#{request.uri.scheme}://#{request.uri.host}"
-        start_time = Time.now
-        response = yield # Let the request happen
-        response_time = Time.now - start_time
-
+      agent.post_connect_hooks << lambda do |_agent, uri, response, _body|
+        response_time = Time.now - connection_started_at
+        puts "Pre Connect uri: #{uri.inspect}, response: #{response.inspect}"
+        domain = "#{uri.scheme}://#{uri.host}"
         delay = [
           robots_checker.crawl_delay,
           (response_delay ? adaptive_delay.next_delay(domain, response_time) : 0.0),
