@@ -1,5 +1,8 @@
 # Project-Specific Guidelines
 
+These project specific guidelines supplement the general project instructions.
+Ask for clarification of any apparent conflicts with SPECS, IMPLEMENTATION or project instructions.
+
 ## Error Handling Approaches
 
 Process each authority's site in issolation - problems with one authority are irrelevant to others.
@@ -61,4 +64,3 @@ but if the file is bad, just treat it as missing.
 ### Minimal Logging
 - Log only key events (key means down to adding a record)
 - Focus on errors
-
