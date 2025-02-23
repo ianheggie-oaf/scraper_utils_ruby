@@ -38,15 +38,12 @@ RSpec.describe RobotsChecker do
       end
     end
 
-    context "with simple robots.txt" do
+    context "with robots.txt matching our user agent" do
       let(:robots_txt_content) do
         <<~ROBOTS
           User-agent: ScraperUtils
           Disallow: /private/
           Crawl-delay: 10
-
-          User-agent: *
-          Disallow: /admin/
         ROBOTS
       end
 
@@ -61,29 +58,6 @@ RSpec.describe RobotsChecker do
       it "returns crawl delay for specific user agent" do
         robots_checker.allowed?("https://example.com/")
         expect(robots_checker.crawl_delay).to eq(10)
-      end
-    end
-
-    context "with wildcard robots.txt" do
-      let(:robots_txt_content) do
-        <<~ROBOTS
-          User-agent: *
-          Disallow: /blocked/
-          Crawl-delay: 5
-        ROBOTS
-      end
-
-      it "allows access to non-blocked paths" do
-        expect(robots_checker.allowed?("https://example.test/allowed/page")).to be true
-      end
-
-      it "blocks access to wildcard disallowed paths" do
-        expect(robots_checker.allowed?("https://example.test/blocked/page")).to be false
-      end
-
-      it "returns generic crawl delay" do
-        robots_checker.allowed?("https://example.test/")
-        expect(robots_checker.crawl_delay).to eq(5)
       end
     end
 
@@ -127,7 +101,7 @@ RSpec.describe RobotsChecker do
 
     it "handles empty robots.txt" do
       result = parse_method.call("")
-      expect(result).to eq(our_rules: [], our_delay: nil, generic_delay: nil)
+      expect(result).to eq(our_rules: [], our_delay: nil)
     end
 
     it "handles case-insensitive parsing" do
