@@ -23,12 +23,12 @@ module ScraperUtils
     #        and not 3rd attempt
     # @return [Mechanize] Configured Mechanize agent
     def self.mechanize_agent(use_proxy: false,
-                             timeout: nil,
-                             compliant_mode: false,
-                             random_delay: nil,
-                             response_delay: false,
-                             disable_ssl_certificate_check: false,
-                             australian_proxy: false)
+                           timeout: nil,
+                           compliant_mode: false,
+                           random_delay: nil,
+                           response_delay: false,
+                           disable_ssl_certificate_check: false,
+                           australian_proxy: false)
       display_args = []
       display_args << "timeout=#{timeout}" if timeout
       display_args << "use_proxy" if use_proxy
@@ -44,9 +44,6 @@ module ScraperUtils
       agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if disable_ssl_certificate_check
       use_proxy &&= !ScraperUtils.australian_proxy.to_s.empty?
       if use_proxy
-        # On morph.io set the environment variable MORPH_AUSTRALIAN_PROXY to
-        # http://morph:password@au.proxy.oaf.org.au:8888 replacing password with
-        # the real password.
         agent.agent.set_proxy(ScraperUtils.australian_proxy)
         agent.request_headers ||= {}
         agent.request_headers["Accept-Language"] = "en-AU,en-US;q=0.9,en;q=0.8"
@@ -63,30 +60,37 @@ module ScraperUtils
       user_agent = "Mozilla/5.0 (compatible; ScraperUtils/#{version} #{today}; +https://github.com/openaustralia/scraperwiki-library)"
       agent.user_agent = user_agent if compliant_mode
 
-      # Calculating a rand that when
+      # Calculate random delay parameters
       target_delay = random_delay || 10
       min_random = Math.sqrt(target_delay * 3.0 / 13.0)
       max_random = 3 * min_random
 
       robots_checker = RobotsChecker.new(user_agent)
       adaptive_delay = AdaptiveDelay.new
-
-      connection_started_at = Time.new
+      connection_started_at = Time.now
 
       agent.pre_connect_hooks << lambda do |_agent, request|
-        connection_started_at = Time.new
-        puts "Pre Connect request: #{request.inspect}"
-        # Am I specifically blocked?
+        connection_started_at = Time.now
+        puts "Pre Connect request: #{request.inspect}" if ENV["DEBUG"]
+        
+        # Get the full URL from the request
         url = request.uri.to_s
-        unless robots_checker.allowed?(url) && compliant_mode
-          raise ScraperUtils::UnprocessableSite,
-                "URL not allowed by robots.txt specific rules: #{url}"
+        
+        # Only check robots.txt if compliant_mode is enabled and URL is present
+        if compliant_mode && !url.empty?
+          unless robots_checker.allowed?(url)
+            raise ScraperUtils::UnprocessableSite,
+                  "URL not allowed by robots.txt specific rules: #{url}"
+          end
         end
       end
 
       agent.post_connect_hooks << lambda do |_agent, uri, response, _body|
+        raise ArgumentError, "URI must be present in post-connect hook" unless uri
+
         response_time = Time.now - connection_started_at
-        puts "Pre Connect uri: #{uri.inspect}, response: #{response.inspect}"
+        puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect}" if ENV["DEBUG"]
+
         domain = "#{uri.scheme}://#{uri.host}"
         delay = [
           robots_checker.crawl_delay,
@@ -98,6 +102,7 @@ module ScraperUtils
           puts "Delaying #{delay.round(3)} seconds" if ENV["DEBUG"]
           sleep(delay)
         end
+
         response
       end
 

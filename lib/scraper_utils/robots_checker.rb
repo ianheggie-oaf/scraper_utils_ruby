@@ -10,13 +10,11 @@ class RobotsChecker
   # User-agent: ScraperUtils/0.1.0
   # User-agent: ScraperUtils/
   # User-agent: ScraperUtils
-  # But NOT:
+  #
+  # ONLY Crawl-delay from default:
   # User-agent: *
   def initialize(user_agent)
-    @user_agent = (
-      user_agent.match(/compatible;\s+([^;\s]+)/i)&.[](1)&.strip ||
-        user_agent
-    )&.downcase
+    @user_agent = extract_user_agent(user_agent).downcase
     if ENV["DEBUG"]
       puts "Checking robots.txt for user agent prefix: #{@user_agent} (case insensitive)"
     end
@@ -30,27 +28,21 @@ class RobotsChecker
   # @param url [String] The full URL to check
   # @return [Boolean] true if allowed or robots.txt unavailable, false if specifically blocked
   def allowed?(url)
+    return true if url.nil? || url.empty?
+
     uri = URI(url)
     domain = "#{uri.scheme}://#{uri.host}"
-    path = uri.path
+    path = uri.path || "/"
 
     # Get or fetch robots.txt rules
     rules = get_rules(domain)
     return true unless rules # If we can't get robots.txt, assume allowed
 
-    # Store any delay found (specific to us or generic)
-    # Will be available via crawl_delay method after this check
-    @delay = rules[:our_delay] || rules[:generic_delay]
+    # Store any delay found for this domain
+    @delay = rules[:our_delay]
 
-    # Only check disallow rules if our specific user agent is mentioned
-    if rules[:our_rules].any?
-      # We were mentioned specifically, follow our rules
-      rules[:our_rules].each do |rule|
-        return false if path&.start_with?(rule)
-      end
-    end
-
-    true # Allow by default
+    # Check rules specific to our user agent
+    !matches_any_rule?(path, rules[:our_rules])
   end
 
   # Returns the crawl delay (if any) that applied to the last URL checked
@@ -60,9 +52,20 @@ class RobotsChecker
     @delay
   end
 
-  # Fetch and cache robots.txt content for a domain
-  # @param domain [String] The domain including protocol (e.g. "https://example.com")
-  # @return [Hash, nil] Parsed rules or nil if robots.txt unavailable
+  private
+
+  def extract_user_agent(user_agent)
+    if user_agent =~ /compatible;\s+([^;\s]+)/i
+      $1.strip
+    else
+      user_agent.strip
+    end
+  end
+
+  def matches_any_rule?(path, rules)
+    rules&.any? { |rule| path.start_with?(rule) }
+  end
+
   def get_rules(domain)
     return @rules[domain] if @rules.key?(domain)
 
@@ -74,7 +77,7 @@ class RobotsChecker
       @rules[domain] = rules
       rules
     rescue StandardError => e
-      puts "Warning: Failed to fetch robots.txt for #{domain}: #{e.message}" if $DEBUG
+      puts "Warning: Failed to fetch robots.txt for #{domain}: #{e.message}" if ENV["DEBUG"]
       nil
     end
   end
@@ -86,41 +89,35 @@ class RobotsChecker
   def parse_robots_txt(content)
     our_rules = []
     our_delay = nil
-    generic_delay = nil
     current_agent = nil
+    is_our_section = false
+
     content.each_line do |line|
       line = line.strip.downcase
+      next if line.empty? || line.start_with?("#")
 
       if line.start_with?("user-agent:")
         agent = line.split(":", 2).last.strip
         current_agent = agent
+        is_our_section = @user_agent.start_with?(current_agent)
         next
       end
 
       next unless current_agent # Skip rules before first user-agent
+      next unless is_our_section # Only process rules for our user agent
 
       if line.start_with?("disallow:")
         path = line.split(":", 2).last.strip
-        next if path.empty?
-
-        our_rules << path if @user_agent.downcase.start_with?(current_agent)
+        our_rules << path unless path.empty?
       elsif line.start_with?("crawl-delay:")
         delay = line.split(":", 2).last.strip.to_i
-        if delay.positive?
-          # Changed to prefix match
-          if current_agent.start_with?(@user_agent.downcase)
-            our_delay = delay
-          elsif current_agent == "*"
-            generic_delay = delay
-          end
-        end
+        our_delay = delay if delay.positive?
       end
     end
 
     {
-      our_rules: our_rules, # Disallow rules specific to our user agent
-      our_delay: our_delay, # Crawl-delay specific to our user agent
-      generic_delay: generic_delay # Generic crawl-delay (user-agent: *)
+      our_rules: our_rules,
+      our_delay: our_delay
     }
   end
 end
