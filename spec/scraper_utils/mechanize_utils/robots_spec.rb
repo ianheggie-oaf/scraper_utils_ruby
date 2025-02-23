@@ -27,9 +27,11 @@ RSpec.describe ScraperUtils::MechanizeUtils do
         end
 
         it "uses the default crawl delay in compliant mode" do
+          stub_request(:get, "https://example.com/admin")
+            .to_return(status: 200, body: page_content)
           agent = described_class.mechanize_agent(compliant_mode: true)
           start_time = Time.now
-          agent.get("https://example.com/admin")  # Should work despite Disallow
+          agent.get("https://example.com/admin")  # Should work despite default Disallow
           elapsed = Time.now - start_time
           expect(elapsed).to be >= 0.2  # Should use default crawl delay
         end
@@ -40,7 +42,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
           stub_request(:get, "https://example.com/robots.txt")
             .to_return(status: 200, body: <<~ROBOTS
               User-agent: *
-              Crawl-delay: 0.2
+              Crawl-delay: 2.2
               Disallow: /admin
 
               User-agent: ScraperUtils
@@ -65,7 +67,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
           stub_request(:get, "https://example.com/robots.txt")
             .to_return(status: 200, body: <<~ROBOTS
               User-agent: *
-              Crawl-delay: 0.2
+              Crawl-delay: 2.2
               Disallow: /admin
 
               User-agent: ScraperUtils
@@ -90,7 +92,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
           stub_request(:get, "https://example.com/robots.txt")
             .to_return(status: 200, body: <<~ROBOTS
               User-agent: *
-              Disallow: /
+              Allow: /
               
               User-agent: ScraperUtils
               Disallow: /

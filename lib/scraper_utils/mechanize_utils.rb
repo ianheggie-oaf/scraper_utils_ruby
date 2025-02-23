@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "mechanize"
+require "ipaddr"
 
 module ScraperUtils
   # Utilities for configuring and using Mechanize for web scraping
@@ -53,11 +54,18 @@ module ScraperUtils
         agent.read_timeout = timeout
       end
 
-      public_ip(agent) if use_proxy
+      if use_proxy
+        my_ip = public_ip(agent)
+        begin
+          IPAddr.new(my_ip)
+        rescue IPAddr::InvalidAddressError => e
+          raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
+        end
+      end
 
       version = ScraperUtils::VERSION
       today = Date.today.strftime("%Y-%m-%d")
-      user_agent = "Mozilla/5.0 (compatible; ScraperUtils/#{version} #{today}; +https://github.com/openaustralia/scraperwiki-library)"
+      user_agent = "Mozilla/5.0 (compatible; ScraperUtils/#{version} #{today}; +https://github.com/ianheggie-oaf/scraper_utils)"
       agent.user_agent = user_agent if compliant_mode
 
       # Calculate random delay parameters

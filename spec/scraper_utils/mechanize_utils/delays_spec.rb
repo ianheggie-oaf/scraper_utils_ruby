@@ -14,7 +14,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
 
       it "applies random delay when specified" do
         start_time = Time.now
-        agent = described_class.mechanize_agent(random_delay: 0.1)  # Small delay for testing
+        agent = described_class.mechanize_agent(random_delay: 1)  # Small delay for testing
         agent.get("https://example.com")
         elapsed = Time.now - start_time
         
@@ -46,7 +46,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
         agent = described_class.mechanize_agent(
           compliant_mode: true,
           response_delay: true,
-          random_delay: 0.1
+          random_delay: 1
         )
         agent.get("https://example.com")
         elapsed = Time.now - start_time
