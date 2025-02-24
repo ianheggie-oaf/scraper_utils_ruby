@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "../../spec_helper"
 
 RSpec.describe ScraperUtils::MechanizeUtils do
   describe ".mechanize_agent" do
@@ -34,7 +34,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
         expect(elapsed).to be >= 0.1
       end
 
-      it "combines multiple delay types" do
+      it "combines multiple delay types FIXME - uses max!" do
         stub_request(:get, "https://example.com/robots.txt")
           .to_return(status: 200, body: "User-agent: *\nCrawl-delay: 0.1\n")
 
