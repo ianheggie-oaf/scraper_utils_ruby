@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "../../spec_helper"
 
 RSpec.describe ScraperUtils::MechanizeUtils do
   describe ".public_ip" do
@@ -9,11 +9,11 @@ RSpec.describe ScraperUtils::MechanizeUtils do
         .to_return(body: "1.2.3.4\n")
     end
 
-    it "retrieves and logs public IP" do
+    it "retrieves the public IP" do
       agent = Mechanize.new
 
-      expect { described_class.public_ip(agent, force: true) }
-        .to output(/Public IP: 1.2.3.4/).to_stdout
+      expect(described_class.public_ip(agent, force: true))
+        .to eq('1.2.3.4')
     end
 
     it "caches the IP address" do

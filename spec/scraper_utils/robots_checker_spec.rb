@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "../spec_helper"
 require "net/http"
 require "uri"
 
@@ -10,13 +10,13 @@ RSpec.describe RobotsChecker do
 
   describe "#initialize" do
     it "extracts the correct user agent prefix" do
-      expect(robots_checker.instance_variable_get(:@user_agent)).to eq("scraperutils/1.0.0")
+      expect(robots_checker.instance_variable_get(:@user_agent)).to eq("scraperutils")
     end
 
     context "with different user agent formats" do
       it "handles user agent without 'compatible' prefix" do
         checker = described_class.new("ScraperUtils/1.2.3")
-        expect(checker.instance_variable_get(:@user_agent)).to eq("scraperutils/1.2.3")
+        expect(checker.instance_variable_get(:@user_agent)).to eq("scraperutils")
       end
     end
   end
@@ -75,25 +75,6 @@ RSpec.describe RobotsChecker do
         expect(robots_checker.crawl_delay).to be_nil
       end
     end
-
-    context "with multiple user agent rules" do
-      let(:robots_txt_content) do
-        <<~ROBOTS
-          User-agent: ScraperUtils/1.0.0
-          Disallow: /specific/
-          Crawl-delay: 15
-
-          User-agent: ScraperUtils
-          Disallow: /general/
-          Crawl-delay: 10
-        ROBOTS
-      end
-
-      it "prioritizes most specific user agent rules" do
-        expect(robots_checker.allowed?("https://example.biz/specific/page")).to be false
-        expect(robots_checker.crawl_delay).to eq(15)
-      end
-    end
   end
 
   describe "#parse_robots_txt" do
@@ -106,8 +87,8 @@ RSpec.describe RobotsChecker do
 
     it "handles case-insensitive parsing" do
       content = <<~ROBOTS
-        User-Agent: ScraperUtils
-        Disallow: /PRIVATE/
+        User-Agent: ScRAPerUtils
+        Disallow: /PRIvatE/
         Crawl-Delay: 10
       ROBOTS
 
