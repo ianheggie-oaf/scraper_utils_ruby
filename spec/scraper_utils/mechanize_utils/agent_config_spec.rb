@@ -2,63 +2,72 @@
 
 require_relative "../../spec_helper"
 
-RSpec.describe ScraperUtils::MechanizeUtils do
-  describe ".mechanize_agent" do
-    let(:proxy_url) { "https://user:password@test.proxy:8888" }
+RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
+  let(:proxy_url) { "https://user:password@test.proxy:8888" }
 
-    before do
-      #allow(ScraperUtils).to receive(:australian_proxy).and_return(proxy_url)
-      stub_request(:get, ScraperUtils::MechanizeUtils::PUBLIC_IP_URL)
-        .to_return(body: "1.2.3.4\n")
-      ENV["MORPH_AUSTRALIAN_PROXY"] = proxy_url
+  before do
+    stub_request(:get, ScraperUtils::MechanizeUtils::PUBLIC_IP_URL)
+      .to_return(body: "1.2.3.4\n")
+    ENV["MORPH_AUSTRALIAN_PROXY"] = proxy_url
+  end
+
+  after do
+    ENV["MORPH_AUSTRALIAN_PROXY"] = nil
+  end
+
+  describe "#initialize" do
+    context "with no options" do
+      it "creates default configuration and displays it" do
+        expect { described_class.new }.to output(
+          "Created Mechanize agent with \n"
+        ).to_stdout
+      end
     end
 
-    after do
-      ENV["MORPH_AUSTRALIAN_PROXY"] = nil
+    context "with all options enabled" do
+      it "creates configuration with all options and displays them" do
+        expect {
+          described_class.new(
+            use_proxy: true,
+            australian_proxy: true,
+            timeout: 30,
+            compliant_mode: true,
+            random_delay: 5,
+            response_delay: true,
+            disable_ssl_certificate_check: true
+          )
+        }.to output(/Created Mechanize agent with .*timeout=30.*use_proxy.*compliant_mode.*random_delay=5.*response_delay.*disable_ssl_certificate_check/m).to_stdout
+      end
     end
+  end
 
-    it "creates an agent with SSL verification enabled" do
-      agent = described_class.mechanize_agent(use_proxy: false, timeout: nil)
-      expect(agent.verify_mode).not_to eq(OpenSSL::SSL::VERIFY_NONE)
-    end
+  describe "#configure_agent" do
+    let(:agent) { Mechanize.new }
 
-
-    it "creates an agent with SSL verification disabled when requested" do
-      agent = described_class.mechanize_agent(disable_ssl_certificate_check: true)
+    it "configures SSL verification when requested" do
+      config = described_class.new(disable_ssl_certificate_check: true)
+      config.configure_agent(agent)
       expect(agent.verify_mode).to eq(OpenSSL::SSL::VERIFY_NONE)
     end
 
-    context "with proxy" do
-      it "sets proxy when use_proxy is true and proxy is available" do
-        agent = described_class.mechanize_agent(use_proxy: true, australian_proxy: true, timeout: nil)
-        expect(agent.agent.proxy_uri.to_s).to eq(proxy_url)
-      end
-
-      it "does not set proxy when proxy is empty" do
-        allow(ScraperUtils).to receive(:australian_proxy).and_return("")
-        agent = described_class.mechanize_agent(use_proxy: true, australian_proxy: true, timeout: nil)
-        expect(agent.agent.proxy_uri).to be_nil
-      end
-
-      it "does not set proxy when authority doesn't need it" do
-        agent = described_class.mechanize_agent(use_proxy: true, timeout: nil)
-        expect(agent.agent.proxy_uri).to be_nil
-      end
+    it "configures proxy when available and requested" do
+      config = described_class.new(use_proxy: true, australian_proxy: true)
+      config.configure_agent(agent)
+      expect(agent.agent.proxy_uri.to_s).to eq(proxy_url)
     end
 
-    context "without proxy" do
-      it "does not set proxy" do
-        agent = described_class.mechanize_agent(use_proxy: false, timeout: nil)
-        expect(agent.agent.proxy_uri).to be_nil
-      end
+    it "configures timeouts when specified" do
+      config = described_class.new(timeout: 30)
+      config.configure_agent(agent)
+      expect(agent.open_timeout).to eq(30)
+      expect(agent.read_timeout).to eq(30)
     end
 
-    context "with timeout" do
-      it "sets open and read timeouts" do
-        agent = described_class.mechanize_agent(use_proxy: false, timeout: 30)
-        expect(agent.open_timeout).to eq(30)
-        expect(agent.read_timeout).to eq(30)
-      end
+    it "sets up pre and post connect hooks" do
+      config = described_class.new
+      config.configure_agent(agent)
+      expect(agent.pre_connect_hooks.size).to eq(1)
+      expect(agent.post_connect_hooks.size).to eq(1)
     end
   end
 end
