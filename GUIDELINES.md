@@ -47,6 +47,15 @@ but if the file is bad, just treat it as missing.
 
 ## Testing Strategies
 
+* Avoid mocking unless really needed, instead
+  * instantiate a real object to use in the test
+  * use mocking facilities provided by the gem (eg Mechanize, Aws etc)
+  * use integration tests with WebMock for simple external sites or VCR for more complex.
+* Testing the integration all the way through is just as important as the specific algorithms
+* Consider using single responsibility classes / methods to make testing simpler but don't make things more complex just to be testable 
+* If necessary expose internal values as read only attributes as needed for testing, 
+  for example adding a read only attribute to mechanize agent instances with the values calculated internally
+
 ### Behavior-Driven Development (BDD)
 - Focus on behavior specifications
 - User-centric scenarios
