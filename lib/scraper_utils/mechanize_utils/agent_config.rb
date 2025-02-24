@@ -153,6 +153,12 @@ module ScraperUtils
         rescue IPAddr::InvalidAddressError => e
           raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
         end
+      rescue Net::OpenTimeout => e
+        raise "Proxy check timed out: #{e}"
+      rescue Errno::ECONNREFUSED, Net::HTTP::Persistent::Error => e
+        raise "Failed to connect to proxy: #{e}"
+      rescue Net::HTTPProxyAuthenticationRequired => e
+        raise ScraperUtils::UnprocessableSite, "Proxy authentication failed: #{e}"
       end
     end
   end
