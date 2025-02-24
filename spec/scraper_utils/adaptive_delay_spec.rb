@@ -37,14 +37,14 @@ RSpec.describe AdaptiveDelay do
 
     it "Handles negative response times due to clock skew sanely" do
       delay = delay_handler.next_delay(test_url, -30.0)
-      expect(delay).to eq(1.0)  # Clamped to min_delay
+      expect(delay).to eq(1.0) # Clamped to min_delay
       delay = delay_handler.next_delay(test_url, 2.5)
       expect(delay).to be_within(0.1).of(1.9) # start to come up immediately
     end
 
     it "Handles huge response times due to clock skew sanely" do
       delay = delay_handler.next_delay(test_url, 999.0)
-      expect(delay).to eq(30.0)  # Clamped to max_delay
+      expect(delay).to eq(30.0) # Clamped to max_delay
       delay = delay_handler.next_delay(test_url, 1.0)
       expect(delay).to be_within(0.1).of(27.4) # start to come down immediately
     end
@@ -76,12 +76,12 @@ RSpec.describe AdaptiveDelay do
 
     it "restricts min delay value" do
       min_delay = delay_handler.next_delay(test_url, 0.1)
-      expect(min_delay).to eq(1.0)  # Clamped to min_delay
+      expect(min_delay).to eq(1.0) # Clamped to min_delay
     end
 
     it "restricts max delay value" do
       max_delay = delay_handler.next_delay(test_url, 99.0)
-      expect(max_delay).to eq(30.0)  # Clamped to max_delay
+      expect(max_delay).to eq(30.0) # Clamped to max_delay
     end
 
     context "with debug environment" do
@@ -90,7 +90,7 @@ RSpec.describe AdaptiveDelay do
 
       it "prints delay change when in debug mode" do
         expect { delay_handler.next_delay(test_url, 2.0) }
-          .to output(/Adaptive delay for https:\/\/example.com updated to/).to_stdout
+          .to output(%r{Adaptive delay for https://example.com updated to}).to_stdout
       end
     end
   end
@@ -121,7 +121,7 @@ RSpec.describe AdaptiveDelay do
     end
 
     it "returns current delay for known domains" do
-      delay_handler.next_delay(test_url, 1.0)  # Sets up initial delay
+      delay_handler.next_delay(test_url, 1.0) # Sets up initial delay
       expect(delay_handler.delay(test_url)).to be_within(0.1).of(4.0)
     end
   end
@@ -136,8 +136,8 @@ RSpec.describe AdaptiveDelay do
       # Same domain should share delay
       delay1 = delay_handler.next_delay(test_url1, 1.0)
       delay2 = delay_handler.next_delay(test_url2, 2.0)
-      expect(delay2).not_to eq(8.0)  # Not 4 * 2.0
-      expect(delay2).to be_within(0.1).of((9.0 * delay1 + 8.0) / 10.0)
+      expect(delay2).not_to eq(8.0) # Not 4 * 2.0
+      expect(delay2).to be_within(0.1).of(((9.0 * delay1) + 8.0) / 10.0)
     end
 
     it "maintains separate caches for different domains" do

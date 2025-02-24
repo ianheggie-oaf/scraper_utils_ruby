@@ -22,7 +22,6 @@ SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
 require "bundler/setup"
 require "scraper_utils"
 require "rspec"
-require 'webmock/rspec'
 
 # Require all library files
 Dir[File.expand_path("../lib/**/*.rb", __dir__ || "spec/")].sort.each { |file| require file }

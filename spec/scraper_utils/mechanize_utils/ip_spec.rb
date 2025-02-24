@@ -13,7 +13,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
       agent = Mechanize.new
 
       expect(described_class.public_ip(agent, force: true))
-        .to eq('1.2.3.4')
+        .to eq("1.2.3.4")
     end
 
     it "caches the IP address" do

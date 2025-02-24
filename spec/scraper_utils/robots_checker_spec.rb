@@ -26,9 +26,9 @@ RSpec.describe RobotsChecker do
 
     it "logs user agent when debugging" do
       ENV["DEBUG"] = "1"
-      expect {
+      expect do
         described_class.new(user_agent)
-      }.to output(/Checking robots.txt for user agent prefix: scraperutils/).to_stdout
+      end.to output(/Checking robots.txt for user agent prefix: scraperutils/).to_stdout
       ENV["DEBUG"] = nil
     end
   end
@@ -41,9 +41,9 @@ RSpec.describe RobotsChecker do
         stub_request(:get, "https://example.com/robots.txt")
           .to_raise(StandardError.new("test error"))
 
-        expect {
+        expect do
           robots_checker.allowed?("https://example.com/test")
-        }.to output(/Warning: Failed to fetch robots.txt.*test error/m).to_stdout
+        end.to output(/Warning: Failed to fetch robots.txt.*test error/m).to_stdout
       end
     end
 

@@ -22,7 +22,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     context "with no options" do
       it "creates default configuration and displays it" do
         expect { described_class.new }.to output(
-          "Created Mechanize agent with australian_proxy=false.\n"
+          "Configuring Mechanize agent with australian_proxy=false\n"
         ).to_stdout
       end
     end
@@ -33,15 +33,15 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       it "logs connection details" do
         config = described_class.new
         config.configure_agent(Mechanize.new)
-        expect {
+        expect do
           config.send(:pre_connect_hook, nil, double(inspect: "test request"))
-        }.to output(/Pre Connect request: test request/).to_stdout
+        end.to output(/Pre Connect request: test request/).to_stdout
       end
     end
 
     context "with all options enabled" do
       it "creates configuration with all options and displays them" do
-        expect {
+        expect do
           described_class.new(
             use_proxy: true,
             australian_proxy: true,
@@ -51,22 +51,22 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
             response_delay: true,
             disable_ssl_certificate_check: true
           )
-        }.to output(/Created Mechanize agent with .*timeout=30.*use_proxy.*compliant_mode.*random_delay=5.*response_delay.*disable_ssl_certificate_check/m).to_stdout
+        end.to output(/Configuring Mechanize agent with .*timeout=30.*use_proxy.*compliant_mode.*random_delay=5.*response_delay.*disable_ssl_certificate_check/m).to_stdout
       end
     end
 
     context "with proxy configuration edge cases" do
       it "handles proxy without australian_proxy authority" do
-        expect {
+        expect do
           described_class.new(use_proxy: true)
-        }.to output(/Created Mechanize agent with australian_proxy=false/).to_stdout
+        end.to output(/Configuring Mechanize agent with australian_proxy=false/).to_stdout
       end
 
       it "handles empty proxy URL" do
         ENV["MORPH_AUSTRALIAN_PROXY"] = ""
-        expect {
+        expect do
           described_class.new(use_proxy: true, australian_proxy: true)
-        }.to output(/Created Mechanize agent with MORPH_AUSTRALIAN_PROXY not set/).to_stdout
+        end.to output(/Configuring Mechanize agent with MORPH_AUSTRALIAN_PROXY not set/).to_stdout
       end
     end
 
@@ -76,9 +76,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       it "logs connection details" do
         config = described_class.new
         config.configure_agent(Mechanize.new)
-        expect {
+        expect do
           config.send(:pre_connect_hook, nil, double(inspect: "test request"))
-        }.to output(/Pre Connect request: test request/).to_stdout
+        end.to output(/Pre Connect request: test request/).to_stdout
       end
     end
 
@@ -91,9 +91,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         response = double(inspect: "test response")
         # required for post_connect_hook
         config.send(:pre_connect_hook, nil, nil)
-        expect {
+        expect do
           config.send(:post_connect_hook, nil, uri, response, nil)
-        }.to output(/Post Connect uri:.*response: test response/m).to_stdout
+        end.to output(/Post Connect uri:.*response: test response/m).to_stdout
       end
 
       it "logs delay details when delay applied" do
@@ -102,9 +102,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         response = double(inspect: "test response")
         # required for post_connect_hook
         config.send(:pre_connect_hook, nil, nil)
-        expect {
+        expect do
           config.send(:post_connect_hook, nil, uri, response, nil)
-        }.to output(/Delaying \d+\.\d+ seconds/).to_stdout
+        end.to output(/Delaying \d+\.\d+ seconds/).to_stdout
       end
     end
   end
@@ -157,9 +157,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
         config = described_class.new(use_proxy: true, australian_proxy: true)
-        expect {
+        expect do
           config.configure_agent(agent)
-        }.to raise_error(/Invalid public IP address returned by proxy check/)
+        end.to raise_error(/Invalid public IP address returned by proxy check/)
       end
 
       it "handles proxy connection timeout" do
@@ -170,9 +170,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
         config = described_class.new(use_proxy: true, australian_proxy: true)
-        expect {
+        expect do
           config.configure_agent(agent)
-        }.to raise_error(/Proxy check timed out/)
+        end.to raise_error(/Proxy check timed out/)
       end
 
       it "handles proxy connection refused" do
@@ -183,9 +183,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
         config = described_class.new(use_proxy: true, australian_proxy: true)
-        expect {
+        expect do
           config.configure_agent(agent)
-        }.to raise_error(/Failed to connect to proxy/)
+        end.to raise_error(/Failed to connect to proxy/)
       end
 
       it "handles proxy authentication failure" do
@@ -196,9 +196,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
         config = described_class.new(use_proxy: true, australian_proxy: true)
-        expect {
+        expect do
           config.configure_agent(agent)
-        }.to raise_error(/Proxy error/)
+        end.to raise_error(/Proxy error/)
       end
 
       it "handles malformed proxy URL" do
@@ -206,10 +206,10 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
-        expect {
+        expect do
           config = described_class.new(use_proxy: true, australian_proxy: true)
           config.configure_agent(agent)
-        }.to raise_error(URI::InvalidURIError)
+        end.to raise_error(URI::InvalidURIError)
       end
     end
 
@@ -219,9 +219,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         config.configure_agent(agent)
         hook = agent.post_connect_hooks.first
 
-        expect {
+        expect do
           hook.call(agent, nil, double("response"), "body")
-        }.to raise_error(ArgumentError, "URI must be present in post-connect hook")
+        end.to raise_error(ArgumentError, "URI must be present in post-connect hook")
       end
     end
   end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
 # Adapts delays between requests based on server response times. Aims to keep scraper load
 # below 20% of server capacity by targeting delays approximately 4 times the response time.
@@ -19,7 +19,9 @@ class AdaptiveDelay
     @delays = {} # domain -> last delay used
     @min_delay = min_delay.to_f
     @max_delay = max_delay.to_f
-    puts "AdaptiveDelay initialized with delays between #{@min_delay} and #{@max_delay} seconds" if ENV['DEBUG']
+    return unless ENV["DEBUG"]
+
+    puts "AdaptiveDelay initialized with delays between #{@min_delay} and #{@max_delay} seconds"
   end
 
   # Extracts the scheme and host from a URL to create a domain key
@@ -51,12 +53,12 @@ class AdaptiveDelay
     # aim at four times response_time, kept within sane values
     value = response_time.clamp(0.0, @max_delay) * 4.0
     current_delay = @delays[uris_domain] || value
-    delay = (9.0 * current_delay + value) / 10.0
+    delay = ((9.0 * current_delay) + value) / 10.0
     delay = delay.clamp(@min_delay, @max_delay)
 
     if ENV["DEBUG"]
       puts "Adaptive delay for #{uris_domain} updated to " \
-             "#{delay.round(2)}s to trend to 4 * response_time(#{response_time.round(2)}s)"
+           "#{delay.round(2)}s to trend to 4 * response_time(#{response_time.round(2)}s)"
     end
 
     @delays[uris_domain] = delay

@@ -32,7 +32,7 @@ module ScraperUtils
       # @return [Float] Maximum random delay
       attr_reader :max_random
       # @return [Float] Delay used
-      attr_reader :max_random
+      attr_reader :delay
 
       # Creates configuration for a Mechanize agent
       # @param use_proxy [Boolean] Use the Australian proxy if available
@@ -53,10 +53,10 @@ module ScraperUtils
         @use_proxy = use_proxy && australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
         if @use_proxy
           uri = begin
-                  URI.parse(ScraperUtils.australian_proxy.to_s)
-                rescue URI::InvalidURIError => e
-                  raise URI::InvalidURIError, "Invalid proxy URL format: #{e.message}"
-                end
+            URI.parse(ScraperUtils.australian_proxy.to_s)
+          rescue URI::InvalidURIError => e
+            raise URI::InvalidURIError, "Invalid proxy URL format: #{e.message}"
+          end
           unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
             raise URI::InvalidURIError, "Proxy URL must start with http:// or https://"
           end
@@ -126,7 +126,8 @@ module ScraperUtils
         display_args << "random_delay=#{@random_delay}" if @random_delay
         display_args << "response_delay" if @response_delay
         display_args << "disable_ssl_certificate_check" if @disable_ssl_certificate_check
-        puts "Created Mechanize agent with #{display_args.empty? ? 'default args' : ''}#{display_args.join(', ')}."
+        display_args << "default args" if display_args.empty?
+        puts "Configuring Mechanize agent with #{display_args.join(', ')}"
       end
 
       def pre_connect_hook(_agent, request)
@@ -138,19 +139,19 @@ module ScraperUtils
         raise ArgumentError, "URI must be present in post-connect hook" unless uri
 
         response_time = Time.now - @connection_started_at
-        puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds" if ENV["DEBUG"]
+        if ENV["DEBUG"]
+          puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds"
+        end
 
-        if compliant_mode
-          unless robots_checker.allowed?(uri)
-            raise ScraperUtils::UnprocessableSite,
-                  "URL not allowed by robots.txt specific rules: #{uri}"
-          end
+        if compliant_mode && !robots_checker.allowed?(uri)
+          raise ScraperUtils::UnprocessableSite,
+                "URL not allowed by robots.txt specific rules: #{uri}"
         end
 
         @delay = [
           robots_checker.crawl_delay,
           (response_delay ? adaptive_delay.next_delay(uri, response_time) : 0.0),
-          (random_delay ? rand(@min_random..@max_random) ** 2 : 0.0)
+          (random_delay ? rand(@min_random..@max_random)**2 : 0.0)
         ].compact.max&.round(3)
 
         if @delay&.positive?
@@ -162,20 +163,18 @@ module ScraperUtils
       end
 
       def verify_proxy_ip(agent)
+        my_ip = MechanizeUtils.public_ip(agent)
         begin
-          my_ip = MechanizeUtils.public_ip(agent)
-          begin
-            IPAddr.new(my_ip)
-          rescue IPAddr::InvalidAddressError => e
-            raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
-          end
-        rescue Net::OpenTimeout, Timeout::Error => e
-          raise "Proxy check timed out: #{e}"
-        rescue Errno::ECONNREFUSED, Net::HTTP::Persistent::Error => e
-          raise "Failed to connect to proxy: #{e}"
-        rescue Mechanize::ResponseCodeError => e
-          raise "Proxy error: #{e}"
+          IPAddr.new(my_ip)
+        rescue IPAddr::InvalidAddressError => e
+          raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
         end
+      rescue Net::OpenTimeout, Timeout::Error => e
+        raise "Proxy check timed out: #{e}"
+      rescue Errno::ECONNREFUSED, Net::HTTP::Persistent::Error => e
+        raise "Failed to connect to proxy: #{e}"
+      rescue Mechanize::ResponseCodeError => e
+        raise "Proxy error: #{e}"
       end
     end
   end
