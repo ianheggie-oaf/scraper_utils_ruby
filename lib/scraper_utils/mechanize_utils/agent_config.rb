@@ -90,6 +90,7 @@ module ScraperUtils
           verify_proxy_ip(agent)
         end
 
+        @connection_started_at = nil
         agent.pre_connect_hooks << method(:pre_connect_hook)
         agent.post_connect_hooks << method(:post_connect_hook)
       end
@@ -115,14 +116,14 @@ module ScraperUtils
 
       def pre_connect_hook(_agent, request)
         @connection_started_at = Time.now
-        puts "Pre Connect request: #{request.inspect}" if ENV["DEBUG"]
+        puts "Pre Connect request: #{request.inspect} at #{@connection_started_at}" if ENV["DEBUG"]
       end
 
       def post_connect_hook(_agent, uri, response, _body)
         raise ArgumentError, "URI must be present in post-connect hook" unless uri
 
-        response_time = Time.now - connection_started_at
-        puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect}" if ENV["DEBUG"]
+        response_time = Time.now - @connection_started_at
+        puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds" if ENV["DEBUG"]
 
         if compliant_mode
           unless robots_checker.allowed?(uri)

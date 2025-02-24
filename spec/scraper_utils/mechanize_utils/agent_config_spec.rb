@@ -13,14 +13,27 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
 
   after do
     ENV["MORPH_AUSTRALIAN_PROXY"] = nil
+    ENV["DEBUG"] = nil
   end
 
   describe "#initialize" do
     context "with no options" do
       it "creates default configuration and displays it" do
         expect { described_class.new }.to output(
-          "Created Mechanize agent with australian_proxy=false.\n"
-        ).to_stdout
+                                            "Created Mechanize agent with australian_proxy=false.\n"
+                                          ).to_stdout
+      end
+    end
+
+    context "with debug logging" do
+      before { ENV["DEBUG"] = "1" }
+
+      it "logs connection details" do
+        config = described_class.new
+        config.configure_agent(Mechanize.new)
+        expect {
+          config.send(:pre_connect_hook, nil, double(inspect: "test request"))
+        }.to output(/Pre Connect request: test request/).to_stdout
       end
     end
 
@@ -73,14 +86,26 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     end
 
     context "with post_connect_hook" do
-      it "requires a URI" do
-        config = described_class.new
-        config.configure_agent(agent)
-        hook = agent.post_connect_hooks.first
+      before { ENV["DEBUG"] = "1" }
 
+      it "logs connection details" do
+        config = described_class.new
+        uri = URI("https://example.com")
+        response = double(inspect: "test response")
+        config.send(:pre_connect_hook, nil, nil)
         expect {
-          hook.call(agent, nil, double("response"), "body")
-        }.to raise_error(ArgumentError, "URI must be present in post-connect hook")
+          config.send(:post_connect_hook, nil, uri, response, nil)
+        }.to output(/Post Connect uri:.*response: test response/m).to_stdout
+      end
+
+      it "logs delay details when delay applied" do
+        config = described_class.new(random_delay: 1)
+        uri = URI("https://example.com")
+        response = double(inspect: "test response")
+        config.send(:pre_connect_hook, nil, nil)
+        expect {
+          config.send(:post_connect_hook, nil, uri, response, nil)
+        }.to output(/Delaying \d+\.\d+ seconds/).to_stdout
       end
     end
   end

@@ -8,6 +8,10 @@ RSpec.describe RobotsChecker do
   let(:user_agent) { "Mozilla/5.0 (compatible; ScraperUtils/1.0.0 2025-02-23; +https://github.com/example/scraper)" }
   subject(:robots_checker) { described_class.new(user_agent) }
 
+  after do
+    ENV["DEBUG"] = nil
+  end
+
   describe "#initialize" do
     it "extracts the correct user agent prefix" do
       expect(robots_checker.instance_variable_get(:@user_agent)).to eq("scraperutils")
@@ -30,19 +34,26 @@ RSpec.describe RobotsChecker do
   end
 
   describe "#allowed?" do
-    let(:mock_http) { class_double(Net::HTTP) }
+    context "with debug logging" do
+      before { ENV["DEBUG"] = "1" }
 
-    before do
-      allow(Net::HTTP).to receive(:get_response) do |uri|
-        case uri.to_s
-        when "https://example.com/robots.txt"
-          response = instance_double(Net::HTTPResponse)
-          allow(response).to receive(:code).and_return("200")
-          allow(response).to receive(:body).and_return(robots_txt_content)
-          response
-        else
-          raise SocketError
-        end
+      it "logs robots.txt fetch errors" do
+        stub_request(:get, "https://example.com/robots.txt")
+          .to_raise(StandardError.new("test error"))
+
+        expect {
+          robots_checker.allowed?("https://example.com/test")
+        }.to output(/Warning: Failed to fetch robots.txt.*test error/m).to_stdout
+      end
+    end
+
+    context "when checking simple URLs" do
+      it "returns true for empty URL" do
+        expect(robots_checker.allowed?("")).to be true
+      end
+
+      it "returns true for missing URL" do
+        expect(robots_checker.allowed?(nil)).to be true
       end
     end
 
@@ -55,17 +66,5 @@ RSpec.describe RobotsChecker do
         expect(robots_checker.allowed?("")).to be true
       end
     end
-
-    context "with robots.txt fetch errors" do
-      it "logs error in debug mode" do
-        ENV["DEBUG"] = "1"
-        expect {
-          robots_checker.allowed?("https://error.com/test")
-        }.to output(/Warning: Failed to fetch robots.txt/).to_stdout
-        ENV["DEBUG"] = nil
-      end
-    end
-
-    # ... rest of existing tests ...
   end
 end
