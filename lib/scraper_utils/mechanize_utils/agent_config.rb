@@ -152,3 +152,4 @@ module ScraperUtils
       end
     end
   end
+end
