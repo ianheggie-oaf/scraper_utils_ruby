@@ -31,6 +31,8 @@ module ScraperUtils
       attr_reader :min_random
       # @return [Float] Maximum random delay
       attr_reader :max_random
+      # @return [Float] Delay used
+      attr_reader :max_random
 
       # Creates configuration for a Mechanize agent
       # @param use_proxy [Boolean] Use the Australian proxy if available
@@ -41,12 +43,12 @@ module ScraperUtils
       # @param disable_ssl_certificate_check [Boolean] Skip SSL verification
       # @param australian_proxy [Boolean] Flag for proxy preference
       def initialize(use_proxy: false,
-                    timeout: nil,
-                    compliant_mode: false,
-                    random_delay: nil,
-                    response_delay: false,
-                    disable_ssl_certificate_check: false,
-                    australian_proxy: false)
+                     timeout: nil,
+                     compliant_mode: false,
+                     random_delay: nil,
+                     response_delay: false,
+                     disable_ssl_certificate_check: false,
+                     australian_proxy: false)
         @use_proxy = use_proxy && australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
         @timeout = timeout
         @compliant_mode = compliant_mode
@@ -76,21 +78,20 @@ module ScraperUtils
         agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if disable_ssl_certificate_check
         agent.user_agent = user_agent if compliant_mode
 
+        if @timeout
+          agent.open_timeout = @timeout
+          agent.read_timeout = @timeout
+        end
+
         if @use_proxy
           agent.agent.set_proxy(ScraperUtils.australian_proxy)
           agent.request_headers ||= {}
           agent.request_headers["Accept-Language"] = "en-AU,en-US;q=0.9,en;q=0.8"
-        end
-
-        if timeout
-          agent.open_timeout = timeout
-          agent.read_timeout = timeout
+          verify_proxy_ip(agent)
         end
 
         agent.pre_connect_hooks << method(:pre_connect_hook)
         agent.post_connect_hooks << method(:post_connect_hook)
-
-        verify_proxy_ip(agent) if @use_proxy
       end
 
       private
@@ -117,14 +118,6 @@ module ScraperUtils
       def pre_connect_hook(_agent, request)
         @connection_started_at = Time.now
         puts "Pre Connect request: #{request.inspect}" if ENV["DEBUG"]
-
-        url = request.uri.to_s
-        if compliant_mode && !url.empty?
-          unless robots_checker.allowed?(url)
-            raise ScraperUtils::UnprocessableSite,
-                  "URL not allowed by robots.txt specific rules: #{url}"
-          end
-        end
       end
 
       def post_connect_hook(_agent, uri, response, _body)
@@ -133,16 +126,22 @@ module ScraperUtils
         response_time = Time.now - connection_started_at
         puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect}" if ENV["DEBUG"]
 
-        domain = "#{uri.scheme}://#{uri.host}"
-        delay = [
-          robots_checker.crawl_delay,
-          (response_delay ? adaptive_delay.next_delay(domain, response_time) : 0.0),
-          (random_delay ? rand(@min_random..@max_random)**2 : 0.0)
-        ].compact.max
+        if compliant_mode
+          unless robots_checker.allowed?(uri)
+            raise ScraperUtils::UnprocessableSite,
+                  "URL not allowed by robots.txt specific rules: #{uri}"
+          end
+        end
 
-        if delay&.positive?
-          puts "Delaying #{delay.round(3)} seconds" if ENV["DEBUG"]
-          sleep(delay)
+        @delay = [
+          robots_checker.crawl_delay,
+          (response_delay ? adaptive_delay.next_delay(uri, response_time) : 0.0),
+          (random_delay ? rand(@min_random..@max_random) ** 2 : 0.0)
+        ].compact.max&.round(3)
+
+        if @delay&.positive?
+          puts "Delaying #{@delay} seconds" if ENV["DEBUG"]
+          sleep(@delay)
         end
 
         response

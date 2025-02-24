@@ -24,7 +24,8 @@ RSpec.describe ScraperUtils::MechanizeUtils do
           )
       end
 
-      it "respects robots.txt in compliant mode" do
+      it "respects robots.txt Disallow in compliant mode, raising ScraperUtils::UnprocessableSite" do
+        # it makes one request before aborting :( [mechanize pre_connect_hook has insufficient info]
         stub_request(:get, "https://example.com/private")
           .to_return(status: 200, body: page_content)
 

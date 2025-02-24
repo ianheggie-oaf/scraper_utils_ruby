@@ -26,7 +26,7 @@ class RobotsChecker
   # @param url [String] The full URL to check
   # @return [Boolean] true if allowed or robots.txt unavailable, false if specifically blocked
   def allowed?(url)
-    return true if url.nil? || url.empty?
+    return true unless url
 
     uri = URI(url)
     domain = "#{uri.scheme}://#{uri.host}"
