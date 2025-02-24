@@ -49,7 +49,22 @@ module ScraperUtils
                      response_delay: false,
                      disable_ssl_certificate_check: false,
                      australian_proxy: false)
+        # Validate proxy URL format if proxy will be used
         @use_proxy = use_proxy && australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
+        if @use_proxy
+          uri = begin
+                  URI.parse(ScraperUtils.australian_proxy.to_s)
+                rescue URI::InvalidURIError => e
+                  raise URI::InvalidURIError, "Invalid proxy URL format: #{e.message}"
+                end
+          unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
+            raise URI::InvalidURIError, "Proxy URL must start with http:// or https://"
+          end
+          unless uri.host && uri.port
+            raise URI::InvalidURIError, "Proxy URL must include host and port"
+          end
+        end
+
         @timeout = timeout
         @compliant_mode = compliant_mode
         @random_delay = random_delay
@@ -147,18 +162,20 @@ module ScraperUtils
       end
 
       def verify_proxy_ip(agent)
-        my_ip = MechanizeUtils.public_ip(agent)
         begin
-          IPAddr.new(my_ip)
-        rescue IPAddr::InvalidAddressError => e
-          raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
+          my_ip = MechanizeUtils.public_ip(agent)
+          begin
+            IPAddr.new(my_ip)
+          rescue IPAddr::InvalidAddressError => e
+            raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
+          end
+        rescue Net::OpenTimeout, Timeout::Error => e
+          raise "Proxy check timed out: #{e}"
+        rescue Errno::ECONNREFUSED, Net::HTTP::Persistent::Error => e
+          raise "Failed to connect to proxy: #{e}"
+        rescue Mechanize::ResponseCodeError => e
+          raise "Proxy error: #{e}"
         end
-      rescue Net::OpenTimeout => e
-        raise "Proxy check timed out: #{e}"
-      rescue Errno::ECONNREFUSED, Net::HTTP::Persistent::Error => e
-        raise "Failed to connect to proxy: #{e}"
-      rescue Net::HTTPProxyAuthenticationRequired => e
-        raise ScraperUtils::UnprocessableSite, "Proxy authentication failed: #{e}"
       end
     end
   end

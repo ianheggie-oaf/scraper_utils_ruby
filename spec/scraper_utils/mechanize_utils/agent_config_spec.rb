@@ -198,7 +198,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         config = described_class.new(use_proxy: true, australian_proxy: true)
         expect {
           config.configure_agent(agent)
-        }.to raise_error(/Proxy authentication failed/)
+        }.to raise_error(/Proxy error/)
       end
 
       it "handles malformed proxy URL" do
@@ -206,8 +206,8 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
-        config = described_class.new(use_proxy: true, australian_proxy: true)
         expect {
+          config = described_class.new(use_proxy: true, australian_proxy: true)
           config.configure_agent(agent)
         }.to raise_error(URI::InvalidURIError)
       end

@@ -18,7 +18,9 @@ RSpec.describe ScraperUtils::MechanizeUtils do
             User-agent: *
             Crawl-delay: 1
 
+            User-agent: GoogleBot
             User-agent: ScraperUtils
+            User-agent: OtherBot
             Disallow: /private
           ROBOTS
           )
