@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "../../spec_helper"
 
 RSpec.describe ScraperUtils::MechanizeUtils do
   describe ".mechanize_agent" do
@@ -17,7 +17,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
           stub_request(:get, "https://example.com/robots.txt")
             .to_return(status: 200, body: <<~ROBOTS
               User-agent: *
-              Crawl-delay: 0.2
+              Crawl-delay: 1
               Disallow: /admin
 
               User-agent: GPTBot
