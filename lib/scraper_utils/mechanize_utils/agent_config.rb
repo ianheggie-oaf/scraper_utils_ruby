@@ -100,19 +100,17 @@ module ScraperUtils
         display_args = []
         display_args << "timeout=#{@timeout}" if @timeout
         if @use_proxy
-          extra = if !@australian_proxy
-                    " (but australian_proxy not set for authority)"
-                  elsif ScraperUtils.australian_proxy.to_s.empty?
-                    " (but #{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} env var is blank)"
-                  end
-          display_args << "use_proxy#{extra}"
+          display_args << "use_proxy#{@use_proxy}"
+        elsif !@australian_proxy
+          display_args << "australian_proxy=false"
+        elsif ScraperUtils.australian_proxy.to_s.empty?
+          display_args << "#{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} not set"
         end
         display_args << "compliant_mode" if @compliant_mode
         display_args << "random_delay=#{@random_delay}" if @random_delay
         display_args << "response_delay" if @response_delay
         display_args << "disable_ssl_certificate_check" if @disable_ssl_certificate_check
-        display_args << "australian_proxy not used" if @australian_proxy && !@use_proxy
-        puts "Created Mechanize agent with #{display_args.join(', ')}"
+        puts "Created Mechanize agent with #{display_args.empty? ? 'default args' : ''}#{display_args.join(', ')}."
       end
 
       def pre_connect_hook(_agent, request)

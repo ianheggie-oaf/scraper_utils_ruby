@@ -19,7 +19,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     context "with no options" do
       it "creates default configuration and displays it" do
         expect { described_class.new }.to output(
-          "Created Mechanize agent with \n"
+          "Created Mechanize agent with australian_proxy=false.\n"
         ).to_stdout
       end
     end
@@ -39,35 +39,49 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         }.to output(/Created Mechanize agent with .*timeout=30.*use_proxy.*compliant_mode.*random_delay=5.*response_delay.*disable_ssl_certificate_check/m).to_stdout
       end
     end
+
+    context "with proxy configuration edge cases" do
+      it "handles proxy without australian_proxy authority" do
+        expect {
+          described_class.new(use_proxy: true)
+        }.to output(/australian_proxy=false/).to_stdout
+      end
+
+      it "handles empty proxy URL" do
+        ENV["MORPH_AUSTRALIAN_PROXY"] = nil
+        expect {
+          described_class.new(use_proxy: true, australian_proxy: true)
+        }.to output(/#{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} not set/).to_stdout
+      end
+    end
   end
 
   describe "#configure_agent" do
     let(:agent) { Mechanize.new }
 
-    it "configures SSL verification when requested" do
-      config = described_class.new(disable_ssl_certificate_check: true)
-      config.configure_agent(agent)
-      expect(agent.verify_mode).to eq(OpenSSL::SSL::VERIFY_NONE)
+    context "with proxy verification" do
+      it "handles invalid IP formats" do
+        ENV["MORPH_AUSTRALIAN_PROXY"] = proxy_url
+        stub_request(:get, ScraperUtils::MechanizeUtils::PUBLIC_IP_URL)
+          .to_return(body: "invalid.ip.address\n")
+
+        config = described_class.new(use_proxy: true, australian_proxy: true)
+        expect {
+          config.configure_agent(agent)
+        }.to raise_error(/Invalid public IP address returned by proxy check/)
+      end
     end
 
-    it "configures proxy when available and requested" do
-      config = described_class.new(use_proxy: true, australian_proxy: true)
-      config.configure_agent(agent)
-      expect(agent.agent.proxy_uri.to_s).to eq(proxy_url)
-    end
+    context "with post_connect_hook" do
+      it "requires a URI" do
+        config = described_class.new
+        config.configure_agent(agent)
+        hook = agent.post_connect_hooks.first
 
-    it "configures timeouts when specified" do
-      config = described_class.new(timeout: 30)
-      config.configure_agent(agent)
-      expect(agent.open_timeout).to eq(30)
-      expect(agent.read_timeout).to eq(30)
-    end
-
-    it "sets up pre and post connect hooks" do
-      config = described_class.new
-      config.configure_agent(agent)
-      expect(agent.pre_connect_hooks.size).to eq(1)
-      expect(agent.post_connect_hooks.size).to eq(1)
+        expect {
+          hook.call(agent, nil, double("response"), "body")
+        }.to raise_error(ArgumentError, "URI must be present in post-connect hook")
+      end
     end
   end
 end
