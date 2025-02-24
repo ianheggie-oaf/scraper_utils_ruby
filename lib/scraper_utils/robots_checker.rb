@@ -1,18 +1,16 @@
 # frozen_string_literal: true
 
-# Checks robots.txt for relevant lines
+# robots.txt checker with deliberately simplistic rules
 class RobotsChecker
+  # @return [String] Lowercased user_agent for matching
+  attr_reader :user_agent
+
   # Initialize with full user agent string like:
   # "Mozilla/5.0 (compatible; ScraperUtils/0.1.0 2025-02-22; +https://github.com/ianheggie-oaf/scraper_utils)"
-  # Will extract the bot name part (e.g. "ScraperUtils/0.1.0") to check against robots.txt
-  #
-  # robots.txt matches would include:
-  # User-agent: ScraperUtils/0.1.0
-  # User-agent: ScraperUtils/
-  # User-agent: ScraperUtils
-  #
-  # ONLY Crawl-delay from default:
-  # User-agent: *
+  # Extracts the bot name (e.g. "ScraperUtils") to check against robots.txt
+  # Checks for
+  # * Disallow for User-agent: bot_name and
+  # * Crawl-delay from either User-agent: bot name or * (default)
   def initialize(user_agent)
     @user_agent = extract_user_agent(user_agent).downcase
     if ENV["DEBUG"]
@@ -55,8 +53,8 @@ class RobotsChecker
   private
 
   def extract_user_agent(user_agent)
-    if user_agent =~ /compatible;\s+([^;\s]+)/i
-      $1.strip
+    if user_agent =~ /^(.*compatible;\s*)?([-_a-z0-9]+)/i
+      $2&.strip
     else
       user_agent.strip
     end
@@ -85,12 +83,10 @@ class RobotsChecker
   # Parse robots.txt content into structured rules
   # Only collects rules for our specific user agent and generic crawl-delay
   # @param content [String] The robots.txt content
-  # @return [Hash] Hash containing :our_rules, :our_delay and :generic_delay
+  # @return [Hash] Hash containing :our_rules and :our_delay
   def parse_robots_txt(content)
-    our_rules = []
-    our_delay = nil
-    current_agent = nil
-    is_our_section = false
+    sections = [] # Array of {agent:, rules:[], delay:} hashes
+    current_section = nil
 
     content.each_line do |line|
       line = line.strip.downcase
@@ -98,26 +94,51 @@ class RobotsChecker
 
       if line.start_with?("user-agent:")
         agent = line.split(":", 2).last.strip
-        current_agent = agent
-        is_our_section = @user_agent.start_with?(current_agent)
+        # Check if this is a continuation of the previous section
+        if current_section && current_section[:rules].empty? && current_section[:delay].nil?
+          current_section[:agents] << agent
+        else
+          current_section = { agents: [agent], rules: [], delay: nil }
+          sections << current_section
+        end
         next
       end
 
-      next unless current_agent # Skip rules before first user-agent
-      next unless is_our_section # Only process rules for our user agent
+      next unless current_section # Skip rules before first user-agent
 
       if line.start_with?("disallow:")
         path = line.split(":", 2).last.strip
-        our_rules << path unless path.empty?
+        current_section[:rules] << path unless path.empty?
       elsif line.start_with?("crawl-delay:")
         delay = line.split(":", 2).last.strip.to_i
-        our_delay = delay if delay.positive?
+        current_section[:delay] = delay if delay.positive?
       end
     end
 
-    {
-      our_rules: our_rules,
-      our_delay: our_delay
-    }
+    # Sort sections by most specific agent match first
+    matched_section = sections.find do |section|
+      section[:agents].any? do |agent|
+        # Our user agent starts with this robots.txt agent
+        @user_agent.start_with?(agent) ||
+          # Or this robots.txt agent starts with our user agent 
+          # (handles ScraperUtils matching ScraperUtils/1.0)
+          agent.start_with?(@user_agent)
+      end
+    end
+
+    # Use matched section or fall back to wildcard
+    if matched_section
+      {
+        our_rules: matched_section[:rules],
+        our_delay: matched_section[:delay]
+      }
+    else
+      # Find default section
+      default_section = sections.find { |s| s[:agents].include?("*") }
+      {
+        our_rules: [],
+        our_delay: default_section&.dig(:delay)
+      }
+    end
   end
 end
