@@ -13,11 +13,10 @@ module ScraperUtils
     # @param (see AgentConfig#initialize)
     # @return [Mechanize] Configured Mechanize agent
     def self.mechanize_agent(**options)
-      config = AgentConfig.new(**options)
       agent = Mechanize.new
+      config = AgentConfig.new(**options)
       config.configure_agent(agent)
       agent.instance_variable_set(:@scraper_utils_config, config)
-
       agent
     end
 
@@ -38,8 +37,6 @@ module ScraperUtils
         text = element.inner_text
         return "Maintenance: #{text}" if text&.match?(/maintenance/i)
       end
-
-      # Not in maintenance mode
       nil
     end
 
@@ -50,7 +47,12 @@ module ScraperUtils
     # @return [String] The public IP address
     def self.public_ip(agent, force: false)
       @public_ip = nil if force
-      @public_ip ||= agent.get(PUBLIC_IP_URL).body.strip
+      @public_ip ||=
+        begin
+          ip = agent.get(PUBLIC_IP_URL).body.strip
+          puts "Public IP: #{ip}"
+          ip
+        end
     end
   end
 end

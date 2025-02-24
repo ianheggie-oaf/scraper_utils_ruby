@@ -25,6 +25,12 @@ module ScraperUtils
       attr_reader :user_agent
       # @return [Time] When the current request started
       attr_reader :connection_started_at
+      # @return [Boolean] Whether to use proxy
+      attr_reader :use_proxy
+      # @return [Float] Minimum random delay
+      attr_reader :min_random
+      # @return [Float] Maximum random delay
+      attr_reader :max_random
 
       # Creates configuration for a Mechanize agent
       # @param use_proxy [Boolean] Use the Australian proxy if available
@@ -35,18 +41,19 @@ module ScraperUtils
       # @param disable_ssl_certificate_check [Boolean] Skip SSL verification
       # @param australian_proxy [Boolean] Flag for proxy preference
       def initialize(use_proxy: false,
-                     timeout: nil,
-                     compliant_mode: false,
-                     random_delay: nil,
-                     response_delay: false,
-                     disable_ssl_certificate_check: false,
-                     australian_proxy: false)
+                    timeout: nil,
+                    compliant_mode: false,
+                    random_delay: nil,
+                    response_delay: false,
+                    disable_ssl_certificate_check: false,
+                    australian_proxy: false)
         @use_proxy = use_proxy && australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
         @timeout = timeout
         @compliant_mode = compliant_mode
         @random_delay = random_delay
         @response_delay = response_delay
         @disable_ssl_certificate_check = disable_ssl_certificate_check
+        @australian_proxy = australian_proxy
 
         # Calculate random delay parameters
         target_delay = random_delay || 10
@@ -83,10 +90,29 @@ module ScraperUtils
         agent.pre_connect_hooks << method(:pre_connect_hook)
         agent.post_connect_hooks << method(:post_connect_hook)
 
-        verify_proxy(agent) if @use_proxy
+        verify_proxy_ip(agent) if @use_proxy
       end
 
       private
+
+      def display_options
+        display_args = []
+        display_args << "timeout=#{@timeout}" if @timeout
+        if @use_proxy
+          extra = if !@australian_proxy
+                    " (but australian_proxy not set for authority)"
+                  elsif ScraperUtils.australian_proxy.to_s.empty?
+                    " (but #{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} env var is blank)"
+                  end
+          display_args << "use_proxy#{extra}"
+        end
+        display_args << "compliant_mode" if @compliant_mode
+        display_args << "random_delay=#{@random_delay}" if @random_delay
+        display_args << "response_delay" if @response_delay
+        display_args << "disable_ssl_certificate_check" if @disable_ssl_certificate_check
+        display_args << "australian_proxy not used" if @australian_proxy && !@use_proxy
+        puts "Created Mechanize agent with #{display_args.join(', ')}"
+      end
 
       def pre_connect_hook(_agent, request)
         @connection_started_at = Time.now
@@ -111,7 +137,7 @@ module ScraperUtils
         delay = [
           robots_checker.crawl_delay,
           (response_delay ? adaptive_delay.next_delay(domain, response_time) : 0.0),
-          (random_delay ? rand(@min_random..@max_random) ** 2 : 0.0)
+          (random_delay ? rand(@min_random..@max_random)**2 : 0.0)
         ].compact.max
 
         if delay&.positive?
@@ -122,33 +148,13 @@ module ScraperUtils
         response
       end
 
-      def verify_proxy(agent)
+      def verify_proxy_ip(agent)
         my_ip = MechanizeUtils.public_ip(agent)
         begin
           IPAddr.new(my_ip)
-          puts "Proxy check PASSED with public IP: #{my_ip}"
         rescue IPAddr::InvalidAddressError => e
           raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
         end
-      end
-
-      def display_options
-        display_args = []
-        display_args << "timeout=#{options[:timeout]}" if options[:timeout]
-        if options[:use_proxy]
-          extra = if !options[:australian_proxy]
-                    " (but australian_proxy not set for authority)"
-                  elsif ScraperUtils.australian_proxy.to_s.empty?
-                    " (but #{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} env var is blank)"
-                  end
-          display_args << "use_proxy#{extra}"
-        end
-        display_args << "compliant_mode" if options[:compliant_mode]
-        display_args << "random_delay=#{options[:random_delay]}" if options[:random_delay]
-        display_args << "response_delay" if options[:response_delay]
-        display_args << "disable_ssl_certificate_check" if options[:disable_ssl_certificate_check]
-        display_args << "australian_proxy not used" if options[:australian_proxy] && !options[:use_proxy]
-        puts "Created Mechanize agent with #{display_args.join(', ')}"
       end
     end
   end
