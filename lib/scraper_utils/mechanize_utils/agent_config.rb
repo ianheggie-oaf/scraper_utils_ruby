@@ -72,47 +72,53 @@ module ScraperUtils
 
       # @return [RobotsChecker] Checker for robots.txt rules
       attr_reader :robots_checker
+
       # @return [AdaptiveDelay] Handler for adaptive delays
       attr_reader :adaptive_delay
+
       # @return [Boolean] Whether compliant mode is enabled
       attr_reader :compliant_mode
+
       # @return [Integer, nil] Timeout in seconds for connections
       attr_reader :timeout
+
       # @return [Integer, nil] Target random delay in seconds
       attr_reader :random_delay
+
       # @return [Boolean] Whether to use response-based delays
       attr_reader :response_delay
+
       # @return [Boolean] Whether to disable SSL certificate verification
       attr_reader :disable_ssl_certificate_check
+
       # @return [String] User agent string
       attr_reader :user_agent
+
       # @return [Time] When the current request started
       attr_reader :connection_started_at
-      # @return [Boolean] Whether to use proxy
-      attr_reader :use_proxy
+
       # @return [Float] Minimum random delay
       attr_reader :min_random
+
       # @return [Float] Maximum random delay
       attr_reader :max_random
+
       # @return [Float] Delay used
       attr_reader :delay
 
       # Creates configuration for a Mechanize agent with sensible defaults
-      # @param use_proxy [Boolean, nil] Use proxy if available (default: false unless changed)
       # @param timeout [Integer, nil] Timeout for agent connections (default: 60 unless changed)
       # @param compliant_mode [Boolean, nil] Comply with headers and robots.txt (default: true unless changed)
       # @param random_delay [Integer, nil] Average random delay in seconds (default: 3 unless changed)
       # @param response_delay [Boolean, nil] Delay based on response times (default: true unless changed)
       # @param disable_ssl_certificate_check [Boolean, nil] Skip SSL verification (default: false unless changed)
-      # @param australian_proxy [Boolean, nil] Flag for proxy preference (default: false unless changed)
-      def initialize(use_proxy: nil,
-                     timeout: nil,
+      # @param australian_proxy [Boolean, nil] Use proxy if available (default: false unless changed)
+      def initialize(timeout: nil,
                      compliant_mode: nil,
                      random_delay: nil,
                      response_delay: nil,
                      disable_ssl_certificate_check: nil,
                      australian_proxy: nil)
-        @use_proxy = use_proxy.nil? ? false : use_proxy
         @timeout = timeout.nil? ? self.class.default_timeout : timeout
         @compliant_mode = compliant_mode.nil? ? self.class.default_compliant_mode : compliant_mode
         @random_delay = random_delay.nil? ? self.class.default_random_delay : random_delay
@@ -123,8 +129,8 @@ module ScraperUtils
         @australian_proxy = australian_proxy.nil? ? self.class.default_australian_proxy : australian_proxy
 
         # Validate proxy URL format if proxy will be used
-        @use_proxy = @use_proxy && @australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
-        if @use_proxy
+        @australian_proxy &&= !ScraperUtils.australian_proxy.to_s.empty?
+        if @australian_proxy
           uri = begin
                   URI.parse(ScraperUtils.australian_proxy.to_s)
                 rescue URI::InvalidURIError => e
@@ -169,7 +175,7 @@ module ScraperUtils
           agent.request_headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
           agent.request_headers["Upgrade-Insecure-Requests"] = "1"
         end
-        if @use_proxy
+        if @australian_proxy
           agent.agent.set_proxy(ScraperUtils.australian_proxy)
           agent.request_headers["Accept-Language"] = "en-AU,en-US;q=0.9,en;q=0.8"
           verify_proxy_works(agent)
@@ -185,10 +191,8 @@ module ScraperUtils
       def display_options
         display_args = []
         display_args << "timeout=#{@timeout}" if @timeout
-        if @use_proxy
-          display_args << "use_proxy#{@use_proxy}"
-        elsif !@australian_proxy
-          display_args << "australian_proxy=false"
+        if @australian_proxy
+          display_args << "australian_proxy#{@australian_proxy}"
         elsif ScraperUtils.australian_proxy.to_s.empty?
           display_args << "#{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} not set"
         end

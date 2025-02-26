@@ -45,7 +45,6 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       it "creates configuration with all options and displays them" do
         expect do
           described_class.new(
-            use_proxy: true,
             australian_proxy: true,
             timeout: 30,
             compliant_mode: true,
@@ -53,14 +52,14 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
             response_delay: true,
             disable_ssl_certificate_check: true
           )
-        end.to output(/Configuring Mechanize agent with timeout=30, use_proxytrue, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
+        end.to output(/Configuring Mechanize agent with timeout=30, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
       end
     end
 
     context "with proxy configuration edge cases" do
       it "handles proxy without australian_proxy authority" do
         expect do
-          described_class.new(use_proxy: true)
+          described_class.new
         end.to output(
           "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, response_delay\n"
         ).to_stdout
@@ -69,7 +68,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       it "handles empty proxy URL" do
         ENV["MORPH_AUSTRALIAN_PROXY"] = ""
         expect do
-          described_class.new(use_proxy: true, australian_proxy: true)
+          described_class.new(australian_proxy: true)
         end.to output(
           "Configuring Mechanize agent with timeout=60, MORPH_AUSTRALIAN_PROXY not set, compliant_mode, random_delay=3, response_delay\n"
         ).to_stdout
@@ -146,7 +145,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     end
 
     it "configures proxy when available and requested" do
-      config = described_class.new(use_proxy: true, australian_proxy: true)
+      config = described_class.new(australian_proxy: true)
       config.configure_agent(agent)
       expect(agent.agent.proxy_uri.to_s).to eq(proxy_url)
     end
@@ -165,7 +164,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
           .to_return(body: "invalid.ip.address\n")
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
-        config = described_class.new(use_proxy: true, australian_proxy: true)
+        config = described_class.new(australian_proxy: true)
         expect do
           config.configure_agent(agent)
         end.to raise_error(/Invalid public IP address returned by proxy check/)
@@ -178,7 +177,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
-        config = described_class.new(use_proxy: true, australian_proxy: true)
+        config = described_class.new(australian_proxy: true)
         expect do
           config.configure_agent(agent)
         end.to raise_error(/Proxy check timed out/)
@@ -191,7 +190,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
-        config = described_class.new(use_proxy: true, australian_proxy: true)
+        config = described_class.new(australian_proxy: true)
         expect do
           config.configure_agent(agent)
         end.to raise_error(/Failed to connect to proxy/)
@@ -204,7 +203,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         # force use of new public_ip
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
-        config = described_class.new(use_proxy: true, australian_proxy: true)
+        config = described_class.new(australian_proxy: true)
         expect do
           config.configure_agent(agent)
         end.to raise_error(/Proxy check error/)
@@ -216,7 +215,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
 
         expect do
-          config = described_class.new(use_proxy: true, australian_proxy: true)
+          config = described_class.new(australian_proxy: true)
           config.configure_agent(agent)
         end.to raise_error(URI::InvalidURIError)
       end
@@ -232,7 +231,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         ScraperUtils::MechanizeUtils.instance_variable_set(:@public_ip, nil)
         ScraperUtils::MechanizeUtils.instance_variable_set(:@public_headers, nil)
 
-        config = described_class.new(use_proxy: true, australian_proxy: true)
+        config = described_class.new(australian_proxy: true)
         expect do
           config.configure_agent(agent)
         end.to output(/Couldn't parse public_headers/).to_stdout

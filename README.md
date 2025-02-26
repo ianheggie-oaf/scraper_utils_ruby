@@ -73,7 +73,7 @@ You can also add the following to (hopefully) be more acceptable and not be bloc
 
 Then adjust your code to accept client_options and pass then through to:
 `ScraperUtils::MechanizeUtils.mechanize_agent(client_options || {})`
-to receive a `Mexhanize::Agent` configured accordingly.
+to receive a `Mechanize::Agent` configured accordingly.
 
 The delays use a Mechanize hook to wrap all requests so you don't need to do anything else
 
@@ -109,7 +109,7 @@ require "technology_one_scraper"
 
 # Main Scraper class
 class Scraper
-  AUTHORITIES = TechnologyOneScraper::AUTHORITIES
+  AUTHORITIES = YourScraper::AUTHORITIES
 
   # ADD: attempt argument
   def scrape(authorities, attempt)
@@ -120,14 +120,14 @@ class Scraper
 
       begin
         # REPLACE:
-        # TechnologyOneScraper.scrape(authority_label) do |record|
+        # YourScraper.scrape(authority_label) do |record|
         #   record["authority_label"] = authority_label.to_s
-        #   TechnologyOneScraper.log(record)
+        #   YourScraper.log(record)
         #   ScraperWiki.save_sqlite(%w[authority_label council_reference], record)
         # end
         # WITH:
         ScraperUtils::DataQualityMonitor.start_authority(authority_label)
-        TechnologyOneScraper.scrape(authority_label) do |record|
+        YourScraper.scrape(authority_label) do |record|
           begin
             record["authority_label"] = authority_label.to_s
             ScraperUtils::DbUtils.save_record(record)
@@ -195,37 +195,29 @@ if __FILE__ == $PROGRAM_NAME
 end
 ```
 
-Then deeper in your code update:
+Your code should raise ScraperUtils::UnprocessableRecord when there is a problem with the data presented on a page for a record.
+Then just before you would normally yield a record for saving, rescue that exception and:
 
-* DROPPED: Change scrape to accept a `use_proxy` flag and return an `unprocessable` flag
-* it should rescue ScraperUtils::UnprocessableRecord thrown deeper in the scraping code and
-  set and yield unprocessable eg: `TechnologyOneScraper.scrape(use_proxy, authority_label) do |record, unprocessable|`
+  * Call ScraperUtils::DataQualityMonitor.log_unprocessable_record(e, record)
+  * NOT yield the record for saving
+
+In your code update where create a mechanize agent (often `YourScraper.scrape_period`) and the `AUTHORITIES` hash 
+to move mechanize_agent options (like `australian_proxy` and `timeout`) to a hash under a new key: `client_options`.
+For example:
 
 ```ruby
 require "scraper_utils"
 #...
-module TechnologyOneScraper
-  # Note the extra parameter: use_proxy
-  def self.scrape(authority, use_proxy: false)
-    raise "Unexpected authority: #{authority}" unless AUTHORITIES.key?(authority)
+module YourScraper
+  # ... some code ...
 
-    scrape_period(use_proxy: use_proxy, **AUTHORITIES[authority]) do |record, unprocessable|
-      yield record, unprocessable
-    end
-  end
-
-  # ... rest of code ...
-
-  # Note the extra parameters: use_proxy and timeout
+  # Note the extra parameter: client_options
   def self.scrape_period(url:, period:, webguest: "P1.WEBGUEST",
-                         use_proxy: false, client_options: {}
+                         client_options: {}
   )
-    agent = ScraperUtils::MechanizeUtils.mechanize_agent(use_proxy:use_proxy, **client_options)
+    agent = ScraperUtils::MechanizeUtils.mechanize_agent(**client_options)
 
     # ... rest of code ...
-
-    # Update yield to return unprocessable as well as record
-
   end
 
   # ... rest of code ...
@@ -234,7 +226,7 @@ end
 
 ### Debugging Techniques
 
-The following code will print dbugging info if you set:
+The following code will cause debugging info to be output:
 
 ```bash
 export DEBUG=1

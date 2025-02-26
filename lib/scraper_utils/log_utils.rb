@@ -13,13 +13,10 @@ module ScraperUtils
     # @param start_time [Time] When this scraping attempt was started
     # @param attempt [Integer] 1 for first run, 2 for first retry, 3 for last retry (without proxy)
     # @param authorities [Array<Symbol>] List of authorities attempted to scrape
-    # @param results [Hash] Results for each authority containing:
-    #   - :records_scraped [Integer] Number of records successfully scraped
-    #   - :unprocessable_records [Integer] Optional Number of unprocessable record like regions
-    #   - :error [Exception, nil] Any exception that occurred during scraping
-    #   - :proxy_used [Boolean] Whether a proxy was used
+    # @param exceptions [Hash > Exception] Any exception that occurred during scraping
+    # DataQualityMonitor.stats is checked for :saved and :unprocessed entries
     # @return [void]
-    def self.log_scraping_run(start_time, attempt, authorities, results)
+    def self.log_scraping_run(start_time, attempt, authorities, exceptions)
       raise ArgumentError, "Invalid start time" unless start_time.is_a?(Time)
       raise ArgumentError, "Authorities must be a non-empty array" if authorities.empty?
 
@@ -76,7 +73,12 @@ module ScraperUtils
       cleanup_old_records
     end
 
-    def self.report_on_results(authorities, results)
+    # Report on the results
+    # @param authorities [Array<Symbol>] List of authorities attempted to scrape
+    # @param exceptions [Hash > Exception] Any exception that occurred during scraping
+    # DataQualityMonitor.stats is checked for :saved and :unprocessed entries
+    # @return [void]
+    def self.report_on_results(authorities, exceptions)
       expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:strip)&.map(&:to_sym) || []
 
       puts "MORPH_EXPECT_BAD=#{ENV.fetch('MORPH_EXPECT_BAD', nil)}" if expect_bad.any?

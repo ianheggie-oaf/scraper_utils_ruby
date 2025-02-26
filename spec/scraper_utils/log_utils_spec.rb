@@ -344,7 +344,7 @@ RSpec.describe ScraperUtils::LogUtils do
         ENV["MORPH_EXPECT_BAD"] = "bad_council"
 
         expect { described_class.report_on_results(authorities, results) }
-          .to raise_error(RuntimeError, /WARNING: Remove bad_council from EXPECT_BAD/)
+          .to raise_error(RuntimeError, /WARNING: Remove bad_council from MORPH_EXPECT_BAD/)
 
         ENV["MORPH_EXPECT_BAD"] = nil
       end
