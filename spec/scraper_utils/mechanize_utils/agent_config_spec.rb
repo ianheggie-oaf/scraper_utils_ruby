@@ -213,6 +213,21 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
           config.configure_agent(agent)
         end.to raise_error(URI::InvalidURIError)
       end
+
+      it "handles JSON parsing errors in public headers" do
+        ENV["MORPH_AUSTRALIAN_PROXY"] = proxy_url
+        stub_request(:get, ScraperUtils::MechanizeUtils::PUBLIC_IP_URL)
+          .to_return(body: "1.2.3.4\n")
+        stub_request(:get, ScraperUtils::MechanizeUtils::HEADERS_ECHO_URL)
+          .to_return(body: 'Not a valid JSON')
+        # force use of new public_ip
+        ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
+
+        config = described_class.new(use_proxy: true, australian_proxy: true)
+        expect do
+          config.configure_agent(agent)
+        end.to output(/Couldn't parse public_headers/).to_stdout
+      end
     end
 
     context "with post_connect_hook" do
