@@ -28,10 +28,10 @@ module ScraperUtils
       interrupted = []
 
       authorities.each do |authority_label|
-        result = results[authority_label] || {}
+        result = ScraperUtils::DataQualityMonitor.stats&.fetch(authority_label, nil) || {}
 
-        status = if result[:records_scraped]&.positive?
-                   result[:error] ? :interrupted : :successful
+        status = if result[:saved]&.positive?
+                   exceptions[authority_label] ? :interrupted : :successful
                  else
                    :failed
                  end
@@ -48,9 +48,8 @@ module ScraperUtils
           "run_at" => start_time.iso8601,
           "attempt" => attempt,
           "authority_label" => authority_label.to_s,
-          "records_scraped" => result[:records_scraped] || 0,
-          "unprocessable_records" => result[:unprocessable_records] || 0,
-          "used_proxy" => result[:proxy_used] ? 1 : 0,
+          "records_saved" => result[:saved] || 0,
+          "unprocessable_records" => result[:unprocessed] || 0,
           "status" => status.to_s,
           "error_message" => result[:error]&.message,
           "error_class" => result[:error]&.class&.to_s,
@@ -91,19 +90,22 @@ module ScraperUtils
       puts summary_format % ['-' * 20, '-' * 6, '-' * 6, '-' * 50]
 
       authorities.each do |authority|
-        result = results[authority] || {}
         stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority, {}) || {}
     
-        ok_records = result[:saved] || 0
+        ok_records = stats[:saved] || 0
         bad_records = stats[:unprocessed] || 0
       
         expect_bad_prefix = expect_bad.include?(authority) ? "[EXPECT BAD] " : ""
-        exception_msg = result[:error]&.message&.slice(0, 50) || '-'
+        exception_msg = if exceptions[authority]
+                          "#{exceptions[authority].class} - #{exceptions[authority].message}"
+                        else
+                          "-"
+                        end
         puts summary_format % [
           authority.to_s, 
           ok_records, 
           bad_records,
-          "#{expect_bad_prefix}#{exception_msg}"
+          "#{expect_bad_prefix}#{exception_msg}".slice(0, 70)
         ]
       end
       puts
@@ -112,7 +114,7 @@ module ScraperUtils
 
       # Check for authorities that were expected to be bad but are now working
       unexpected_working = expect_bad.select do |authority|
-        result = results[authority]
+        result = exceptions[authority]
         result && result[:records_scraped]&.positive? && result[:error].nil?
       end
 
