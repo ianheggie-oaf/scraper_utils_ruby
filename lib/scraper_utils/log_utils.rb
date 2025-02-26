@@ -77,9 +77,34 @@ module ScraperUtils
     end
 
     def self.report_on_results(authorities, results)
-      expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:to_sym) || []
+      expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:strip)&.map(&:to_sym) || []
 
-      puts "MORPH_EXPECT_BAD=#{ENV['MORPH_EXPECT_BAD']}" if expect_bad.any?
+      puts "MORPH_EXPECT_BAD=#{ENV.fetch('MORPH_EXPECT_BAD', nil)}" if expect_bad.any?
+
+      # Print summary table
+      puts "\nScraping Summary:"
+      summary_format = "%-20s %6s %6s %s"
+
+      puts summary_format % %w[Authority OK Bad Exception]
+      puts summary_format % ['-' * 20, '-' * 6, '-' * 6, '-' * 50]
+
+      authorities.each do |authority|
+        result = results[authority] || {}
+        stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority, {}) || {}
+    
+        ok_records = result[:saved] || 0
+        bad_records = stats[:unprocessed] || 0
+      
+        expect_bad_prefix = expect_bad.include?(authority) ? "[EXPECT BAD] " : ""
+        exception_msg = result[:error]&.message&.slice(0, 50) || '-'
+        puts summary_format % [
+          authority.to_s, 
+          ok_records, 
+          bad_records,
+          "#{expect_bad_prefix}#{exception_msg}"
+        ]
+      end
+      puts
 
       errors = []
 
@@ -90,7 +115,7 @@ module ScraperUtils
       end
 
       if unexpected_working.any?
-        errors << "WARNING: Remove #{unexpected_working.join(',')} from EXPECT_BAD as it now works!"
+        errors << "WARNING: Remove #{unexpected_working.join(',')} from MORPH_EXPECT_BAD as it now works!"
       end
 
       # Check for authorities with unexpected errors
@@ -100,7 +125,7 @@ module ScraperUtils
 
       if unexpected_errors.any?
         errors << "ERROR: Unexpected errors in: #{unexpected_errors.join(',')} " \
-          "(Add to MORPH_EXPECT_BAD?)"
+                  "(Add to MORPH_EXPECT_BAD?)"
         unexpected_errors.each do |authority|
           error = results[authority][:error]
           errors << "  #{authority}: #{error.class} - #{error.message}"
@@ -134,7 +159,8 @@ module ScraperUtils
         "interrupted" => interrupted.join(","),
         "successful_count" => successful.size,
         "interrupted_count" => interrupted.size,
-        "failed_count" => failed.size
+        "failed_count" => failed.size,
+        "public_ip" => ScraperUtils::MechanizeUtils.public_ip
       }
 
       ScraperWiki.save_sqlite(

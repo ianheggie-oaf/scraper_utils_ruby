@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "planningalerts scraper utilities"
   spec.description = "Utilities to help make planningalerts scrapers, " \
-    "+especially multis easier to develop, run and debug."
+                     "+especially multis easier to develop, run and debug."
   spec.homepage = "https://github.com/ianheggie-oaf/scraper_utils"
   spec.license = "MIT"
 
@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
     # spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
   else
     raise "RubyGems 2.0 or newer is required to protect against " \
-            "public gem pushes."
+          "public gem pushes."
   end
 
   # Specify which files should be added to the gem when it is released.
@@ -40,10 +40,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "mechanize"
   spec.add_dependency "nokogiri"
   spec.add_dependency "sqlite3"
-
-  spec.add_development_dependency "rake"
-  spec.add_development_dependency "rspec"
-  spec.add_development_dependency "rubocop"
-  spec.add_development_dependency "simplecov"
-  spec.add_development_dependency "simplecov-console"
+  spec.metadata["rubygems_mfa_required"] = "true"
 end

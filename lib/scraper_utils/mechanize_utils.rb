@@ -1,32 +1,23 @@
 # frozen_string_literal: true
 
 require "mechanize"
+require "ipaddr"
+require "scraper_utils/mechanize_utils/agent_config"
 
 module ScraperUtils
   # Utilities for configuring and using Mechanize for web scraping
   module MechanizeUtils
     PUBLIC_IP_URL = "https://whatismyip.akamai.com/"
+    HEADERS_ECHO_URL = "https://httpbin.org/headers"
 
-    # Creates and configures a Mechanize agent with optional proxy and timeout
-    #
-    # @param timeout [Integer, nil] Timeout for agent connections
-    # @param australian_proxy [Boolean] Whether to use an Australian proxy
+    # Creates and configures a Mechanize agent
+    # @param (see AgentConfig#initialize)
     # @return [Mechanize] Configured Mechanize agent
-    def self.mechanize_agent(timeout: nil, use_proxy: true)
+    def self.mechanize_agent(**options)
       agent = Mechanize.new
-      agent.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      use_proxy &&= !ScraperUtils.australian_proxy.to_s.empty?
-      if use_proxy
-        # On morph.io set the environment variable MORPH_AUSTRALIAN_PROXY to
-        # http://morph:password@au.proxy.oaf.org.au:8888 replacing password with
-        # the real password.
-        agent.agent.set_proxy(ScraperUtils.australian_proxy)
-      end
-      if timeout
-        agent.open_timeout = timeout
-        agent.read_timeout = timeout
-      end
-      public_ip(agent) if use_proxy
+      config = AgentConfig.new(**options)
+      config.configure_agent(agent)
+      agent.instance_variable_set(:@scraper_utils_config, config)
       agent
     end
 
@@ -47,24 +38,27 @@ module ScraperUtils
         text = element.inner_text
         return "Maintenance: #{text}" if text&.match?(/maintenance/i)
       end
-
-      # Not in maintenance mode
       nil
     end
 
     # Retrieves and logs the public IP address
     #
-    # @param agent [Mechanize] Mechanize agent to use for IP lookup
-    # @param force [Boolean] Force a new IP lookup, bypassing cache
+    # @param agent [Mechanize, nil] Mechanize agent to use for IP lookup or nil when clearing cache
+    # @param force [Boolean] Force a new IP lookup, by clearing cache first
     # @return [String] The public IP address
-    def self.public_ip(agent, force: false)
+    def self.public_ip(agent = nil, force: false)
       @public_ip = nil if force
-      @public_ip ||=
-        begin
-          ip = agent.get(PUBLIC_IP_URL).body.strip
-          puts "Public IP: #{ip}"
-          ip
-        end
+      @public_ip ||= agent&.get(PUBLIC_IP_URL)&.body&.strip if agent
+    end
+
+    # Retrieves and logs the headers that make it through the proxy
+    #
+    # @param agent [Mechanize, nil] Mechanize agent to use for IP lookup or nil when clearing cache
+    # @param force [Boolean] Force a new IP lookup, by clearing cache first
+    # @return [String] The list of headers in json format
+    def self.public_headers(agent = nil, force: false)
+      @public_headers = nil if force
+      @public_headers ||= agent&.get(HEADERS_ECHO_URL)&.body&.strip if agent
     end
   end
 end
