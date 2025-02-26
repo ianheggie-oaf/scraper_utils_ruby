@@ -114,8 +114,8 @@ module ScraperUtils
 
       # Check for authorities that were expected to be bad but are now working
       unexpected_working = expect_bad.select do |authority|
-        result = exceptions[authority]
-        result && result[:records_scraped]&.positive? && result[:error].nil?
+        stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority, {}) || {}
+        stats[:saved]&.positive? && !exceptions[authority]
       end
 
       if unexpected_working.any?
@@ -124,14 +124,14 @@ module ScraperUtils
 
       # Check for authorities with unexpected errors
       unexpected_errors = authorities
-                          .select { |authority| results[authority]&.dig(:error) }
+                          .select { |authority| exceptions[authority] }
                           .reject { |authority| expect_bad.include?(authority) }
 
       if unexpected_errors.any?
         errors << "ERROR: Unexpected errors in: #{unexpected_errors.join(',')} " \
                   "(Add to MORPH_EXPECT_BAD?)"
         unexpected_errors.each do |authority|
-          error = results[authority][:error]
+          error = exceptions[authority]
           errors << "  #{authority}: #{error.class} - #{error.message}"
         end
       end
