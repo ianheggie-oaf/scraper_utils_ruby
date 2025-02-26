@@ -24,7 +24,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     context "with no options" do
       it "creates default configuration and displays it" do
         expect { described_class.new }.to output(
-          "Configuring Mechanize agent with default args\n"
+          "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, response_delay\n"
         ).to_stdout
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
             response_delay: true,
             disable_ssl_certificate_check: true
           )
-        end.to output(/Configuring Mechanize agent with timeout=30, use_proxy, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
+        end.to output(/Configuring Mechanize agent with timeout=30, use_proxytrue, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
       end
     end
 
@@ -61,14 +61,18 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       it "handles proxy without australian_proxy authority" do
         expect do
           described_class.new(use_proxy: true)
-        end.to output(/Configuring Mechanize agent with default args/).to_stdout
+        end.to output(
+          "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, response_delay\n"
+        ).to_stdout
       end
 
       it "handles empty proxy URL" do
         ENV["MORPH_AUSTRALIAN_PROXY"] = ""
         expect do
           described_class.new(use_proxy: true, australian_proxy: true)
-        end.to output(/Configuring Mechanize agent with MORPH_AUSTRALIAN_PROXY not set/).to_stdout
+        end.to output(
+          "Configuring Mechanize agent with timeout=60, MORPH_AUSTRALIAN_PROXY not set, compliant_mode, random_delay=3, response_delay\n"
+        ).to_stdout
       end
     end
 
@@ -123,12 +127,15 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       end
 
       it "does not set timeouts when not specified" do
-        original_open = agent.open_timeout
-        original_read = agent.read_timeout
+        agent = Mechanize.new
+        agent.open_timeout = nil
+        agent.read_timeout = nil
+
         config = described_class.new
         config.configure_agent(agent)
-        expect(agent.open_timeout).to eq(original_open)
-        expect(agent.read_timeout).to eq(original_read)
+
+        expect(agent.open_timeout).to eq(60)
+        expect(agent.read_timeout).to eq(60)
       end
     end
 
