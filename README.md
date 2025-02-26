@@ -42,7 +42,7 @@ Alternatively enter your own AUSTRALIAN proxy details when testing.
 
 #### `MORPH_EXPECT_BAD`
 
-To avoid morph complaining about sites that are known toi be bad,
+To avoid morph complaining about sites that are known to be bad,
 but you want them to keep being tested, list them on `MORPH_EXPECT_BAD`, for example:
 
 
@@ -75,7 +75,7 @@ Then adjust your code to accept client_options and pass then through to:
 `ScraperUtils::MechanizeUtils.mechanize_agent(client_options || {})`
 to receive a `Mexhanize::Agent` configured accordingly.
 
-The delays use a Mechanise hook to wrap all requests so you don't need to do anything else
+The delays use a Mechanize hook to wrap all requests so you don't need to do anything else
 
 ### Default Configuration
 
