@@ -92,16 +92,20 @@ module ScraperUtils
       authorities.each do |authority|
         result = results[authority] || {}
         stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority, {}) || {}
-      
+    
         ok_records = result[:records_scraped] || 0
         bad_records = result[:unprocessable_records] || stats[:unprocessed] || 0
-        exception_msg = result[:error]&.message&.slice(0, 50) || '-'
       
+        # Add "[Expected BAD] " prefix if authority is in MORPH_EXPECT_BAD
+        exception_prefix = expect_bad.include?(authority) ? "[Expected BAD] " : ""
+        exception_msg = result[:error]&.message&.slice(0, 50) || '-'
+        full_exception_msg = "#{exception_prefix}#{exception_msg}"
+    
         puts header_format % [
           authority.to_s, 
           ok_records, 
           bad_records, 
-          exception_msg
+          full_exception_msg
         ]
       end
       puts
