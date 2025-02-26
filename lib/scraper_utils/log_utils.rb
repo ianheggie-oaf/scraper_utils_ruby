@@ -134,7 +134,8 @@ module ScraperUtils
         "interrupted" => interrupted.join(","),
         "successful_count" => successful.size,
         "interrupted_count" => interrupted.size,
-        "failed_count" => failed.size
+        "failed_count" => failed.size,
+        "public_ip" => ScraperUtils::MechanizeUtils.public_ip
       }
 
       ScraperWiki.save_sqlite(

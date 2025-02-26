@@ -8,6 +8,8 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
   before do
     stub_request(:get, ScraperUtils::MechanizeUtils::PUBLIC_IP_URL)
       .to_return(body: "1.2.3.4\n")
+    stub_request(:get, ScraperUtils::MechanizeUtils::HEADERS_ECHO_URL)
+      .to_return(body: '{"headers":{"Host":"httpbin.org"}}')
     # force use of new public_ip
     ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
     ENV["MORPH_AUSTRALIAN_PROXY"] = proxy_url
@@ -198,7 +200,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         config = described_class.new(use_proxy: true, australian_proxy: true)
         expect do
           config.configure_agent(agent)
-        end.to raise_error(/Proxy error/)
+        end.to raise_error(/Proxy check error/)
       end
 
       it "handles malformed proxy URL" do

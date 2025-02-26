@@ -174,8 +174,8 @@ module ScraperUtils
         begin
           # Check response is JSON just to be safe!
           headers = JSON.parse(my_headers)
-          puts "Headers passed by proxy:"
-          puts JSON.pretty_generate(headers)
+          puts "Proxy is passing headers:"
+          puts JSON.pretty_generate(headers['headers'])
         rescue JSON::ParserError => e
           puts "Couldn't parse public_headers: #{e}! Raw response:"
           puts my_headers.inspect

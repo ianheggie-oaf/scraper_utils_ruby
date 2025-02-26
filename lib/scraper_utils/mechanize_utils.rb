@@ -46,7 +46,7 @@ module ScraperUtils
     # @param agent [Mechanize, nil] Mechanize agent to use for IP lookup or nil when clearing cache
     # @param force [Boolean] Force a new IP lookup, by clearing cache first
     # @return [String] The public IP address
-    def self.public_ip(agent, force: false)
+    def self.public_ip(agent = nil, force: false)
       @public_ip = nil if force
       @public_ip ||= agent&.get(PUBLIC_IP_URL)&.body&.strip if agent
     end
