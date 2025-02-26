@@ -77,35 +77,31 @@ module ScraperUtils
     end
 
     def self.report_on_results(authorities, results)
-      expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:to_sym) || []
+      expect_bad = ENV["MORPH_EXPECT_BAD"]&.split(",")&.map(&:strip)&.map(&:to_sym) || []
 
       puts "MORPH_EXPECT_BAD=#{ENV.fetch('MORPH_EXPECT_BAD', nil)}" if expect_bad.any?
 
       # Print summary table
       puts "\nScraping Summary:"
-      header_format = "%-20s %6s %6s %s"
-      separator_format = "%-20s %6s %6s %s"
-    
-      puts header_format % ["Authority", "OK", "Bad", "Exception"]
-      puts separator_format % ['-' * 20, '-' * 6, '-' * 6, '-' * 50]
+      summary_format = "%-20s %6s %6s %s"
+
+      puts summary_format % %w[Authority OK Bad Exception]
+      puts summary_format % ['-' * 20, '-' * 6, '-' * 6, '-' * 50]
 
       authorities.each do |authority|
         result = results[authority] || {}
         stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority, {}) || {}
     
-        ok_records = result[:records_scraped] || 0
-        bad_records = result[:unprocessable_records] || stats[:unprocessed] || 0
+        ok_records = result[:saved] || 0
+        bad_records = stats[:unprocessed] || 0
       
-        # Add "[Expected BAD] " prefix if authority is in MORPH_EXPECT_BAD
-        exception_prefix = expect_bad.include?(authority) ? "[Expected BAD] " : ""
+        expect_bad_prefix = expect_bad.include?(authority) ? "[EXPECT BAD] " : ""
         exception_msg = result[:error]&.message&.slice(0, 50) || '-'
-        full_exception_msg = "#{exception_prefix}#{exception_msg}"
-    
-        puts header_format % [
+        puts summary_format % [
           authority.to_s, 
           ok_records, 
-          bad_records, 
-          full_exception_msg
+          bad_records,
+          "#{expect_bad_prefix}#{exception_msg}"
         ]
       end
       puts
@@ -119,7 +115,7 @@ module ScraperUtils
       end
 
       if unexpected_working.any?
-        errors << "WARNING: Remove #{unexpected_working.join(',')} from EXPECT_BAD as it now works!"
+        errors << "WARNING: Remove #{unexpected_working.join(',')} from MORPH_EXPECT_BAD as it now works!"
       end
 
       # Check for authorities with unexpected errors

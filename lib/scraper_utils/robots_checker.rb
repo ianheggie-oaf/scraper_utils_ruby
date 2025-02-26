@@ -54,10 +54,9 @@ class RobotsChecker
 
   def extract_user_agent(user_agent)
     if user_agent =~ /^(.*compatible;\s*)?([-_a-z0-9]+)/i
-      ::Regexp.last_match(2)&.strip
-    else
-      user_agent.strip
+      user_agent = ::Regexp.last_match(2)&.strip
     end
+    user_agent&.strip
   end
 
   def matches_any_rule?(path, rules)
@@ -118,9 +117,9 @@ class RobotsChecker
     # Sort sections by most specific agent match first
     matched_section = sections.find do |section|
       section[:agents].any? do |agent|
-        # Our user agent starts with this robots.txt agent
+        # Our user agent starts with the agent from robots.txt
         @user_agent.start_with?(agent) ||
-          # Or this robots.txt agent starts with our user agent
+          # Or the agent from robots.txt starts with our user agent
           # (handles ScraperUtils matching ScraperUtils/1.0)
           agent.start_with?(@user_agent)
       end

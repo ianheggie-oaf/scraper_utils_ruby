@@ -4,12 +4,6 @@ module ScraperUtils
   # Monitors data quality during scraping by tracking successful vs failed record processing
   # Automatically triggers an exception if the error rate exceeds a threshold
   class DataQualityMonitor
-    # Get the current authority label
-    # @return [Symbol, nil] Current authority being processed or nil if none set
-    def self.authority_label
-      @authority_label
-    end
-
     # Get the statistics for all authorities
     # @return [Hash, nil] Hash of statistics per authority or nil if none started
     def self.stats
