@@ -192,9 +192,11 @@ module ScraperUtils
         display_args = []
         display_args << "timeout=#{@timeout}" if @timeout
         if @australian_proxy
-          display_args << "australian_proxy#{@australian_proxy}"
+          display_args << "australian_proxy=#{@australian_proxy.inspect}"
         elsif ScraperUtils.australian_proxy.to_s.empty?
           display_args << "#{ScraperUtils::AUSTRALIAN_PROXY_ENV_VAR} not set"
+        else
+          display_args << "australian_proxy=#{@australian_proxy.inspect}"
         end
         display_args << "compliant_mode" if @compliant_mode
         display_args << "random_delay=#{@random_delay}" if @random_delay

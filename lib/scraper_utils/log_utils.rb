@@ -28,10 +28,11 @@ module ScraperUtils
       interrupted = []
 
       authorities.each do |authority_label|
-        result = ScraperUtils::DataQualityMonitor.stats&.fetch(authority_label, nil) || {}
+        stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority_label, nil) || {}
 
-        status = if result[:saved]&.positive?
-                   exceptions[authority_label] ? :interrupted : :successful
+        exception = exceptions[authority_label]
+        status = if stats[:saved]&.positive?
+                   exception ? :interrupted : :successful
                  else
                    :failed
                  end
@@ -48,12 +49,12 @@ module ScraperUtils
           "run_at" => start_time.iso8601,
           "attempt" => attempt,
           "authority_label" => authority_label.to_s,
-          "records_saved" => result[:saved] || 0,
-          "unprocessable_records" => result[:unprocessed] || 0,
+          "records_saved" => stats[:saved] || 0,
+          "unprocessable_records" => stats[:unprocessed] || 0,
           "status" => status.to_s,
-          "error_message" => result[:error]&.message,
-          "error_class" => result[:error]&.class&.to_s,
-          "error_backtrace" => extract_meaningful_backtrace(result[:error])
+          "error_message" => exception&.message,
+          "error_class" => exception&.class&.to_s,
+          "error_backtrace" => extract_meaningful_backtrace(exception)
         }
 
         save_log_record(record)

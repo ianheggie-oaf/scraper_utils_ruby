@@ -10,6 +10,9 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       .to_return(body: "1.2.3.4\n")
     stub_request(:get, ScraperUtils::MechanizeUtils::HEADERS_ECHO_URL)
       .to_return(body: '{"headers":{"Host":"httpbin.org"}}')
+    stub_request(:get, "https://example.com/robots.txt")
+      .to_return(body: "User-agent: *\nDisallow: /\n")
+
     # force use of new public_ip
     ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
     ENV["MORPH_AUSTRALIAN_PROXY"] = proxy_url
@@ -52,7 +55,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
             response_delay: true,
             disable_ssl_certificate_check: true
           )
-        end.to output(/Configuring Mechanize agent with timeout=30, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
+        end.to output(/Configuring Mechanize agent with timeout=30, australian_proxy=true, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
       end
     end
 
