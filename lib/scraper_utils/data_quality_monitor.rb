@@ -4,6 +4,18 @@ module ScraperUtils
   # Monitors data quality during scraping by tracking successful vs failed record processing
   # Automatically triggers an exception if the error rate exceeds a threshold
   class DataQualityMonitor
+    # Get the current authority label
+    # @return [Symbol, nil] Current authority being processed or nil if none set
+    def self.authority_label
+      @authority_label
+    end
+
+    # Get the statistics for all authorities
+    # @return [Hash, nil] Hash of statistics per authority or nil if none started
+    def self.stats
+      @stats
+    end
+
     # Notes the start of processing an authority and clears any previous stats
     #
     # @param authority_label [Symbol] The authority we are processing
@@ -12,6 +24,10 @@ module ScraperUtils
       @stats ||= {}
       @authority_label = authority_label
       @stats[@authority_label] = { saved: 0, unprocessed: 0}
+    end
+
+    def self.threshold
+      5.01 + @stats[@authority_label][:saved] * 0.1 if @stats&.fetch(@authority_label, nil)
     end
 
     # Logs an unprocessable record and raises an exception if error threshold is exceeded
@@ -25,7 +41,7 @@ module ScraperUtils
       start_authority(:"") unless @stats
       @stats[@authority_label][:unprocessed] += 1
       puts "Erroneous record #{@authority_label} - #{record&.fetch('address', nil) || record.inspect}: #{e}"
-      if @stats[@authority_label][:unprocessed] > 5.0 + @stats[@authority_label][:saved] * 0.1
+      if @stats[@authority_label][:unprocessed] > threshold
         raise ScraperUtils::UnprocessableSite, "Too many unprocessable_records for #{@authority_label}: #{@stats[@authority_label].inspect} - aborting processing of site!"
       end
     end

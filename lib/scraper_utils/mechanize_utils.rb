@@ -56,7 +56,7 @@ module ScraperUtils
     # @param agent [Mechanize, nil] Mechanize agent to use for IP lookup or nil when clearing cache
     # @param force [Boolean] Force a new IP lookup, by clearing cache first
     # @return [String] The list of headers in json format
-    def self.public_headers(agent, force: false)
+    def self.public_headers(agent = nil, force: false)
       @public_headers = nil if force
       @public_headers ||= agent&.get(HEADERS_ECHO_URL)&.body&.strip if agent
     end

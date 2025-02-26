@@ -44,7 +44,7 @@ RSpec.describe ScraperUtils::DataQualityMonitor do
     end
 
     it 'allows more unprocessable records proportional to saved records' do
-      error = StandardError.new('Test error')
+      error = ScraperUtils::UnprocessableRecord.new('Test error')
       record = { 'address' => '123 Test St' }
 
       # Log 10 saved records
@@ -54,12 +54,13 @@ RSpec.describe ScraperUtils::DataQualityMonitor do
 
       # Should now allow up to 6 unprocessable records (5 + 10%)
       expect do
-        5.times do
+        6.times do
           described_class.log_unprocessable_record(error, record)
         end
       end.not_to raise_error
 
-      # 6th unprocessable record should raise an error
+      expect(described_class.threshold).to be_within(0.01).of(6.0)
+      # 6th unprocessable record should raise an error (6 is > 5 + 10 * 10%)
       expect { described_class.log_unprocessable_record(error, record) }
         .to raise_error(ScraperUtils::UnprocessableSite)
     end
