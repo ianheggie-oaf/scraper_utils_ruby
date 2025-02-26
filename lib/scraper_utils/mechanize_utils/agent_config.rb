@@ -5,8 +5,71 @@ require "ipaddr"
 
 module ScraperUtils
   module MechanizeUtils
-    # Configuration and hooks for Mechanize agent
+    # Configuration for a Mechanize agent with sensible defaults and configurable settings.
+    # Supports global configuration through {.configure} and per-instance overrides.
+    #
+    # @example Setting global defaults
+    #   ScraperUtils::MechanizeUtils::AgentConfig.configure do |config|
+    #     config.default_timeout = 90
+    #     config.default_random_delay = 5
+    #   end
+    #
+    # @example Creating an instance with defaults
+    #   config = ScraperUtils::MechanizeUtils::AgentConfig.new
+    #
+    # @example Overriding specific settings
+    #   config = ScraperUtils::MechanizeUtils::AgentConfig.new(
+    #     timeout: 120,
+    #     random_delay: 10
+    #   )
     class AgentConfig
+      # Class-level defaults that can be modified
+      class << self
+        # @return [Integer] Default timeout in seconds for agent connections
+        attr_accessor :default_timeout
+
+        # @return [Boolean] Default setting for compliance with headers and robots.txt
+        attr_accessor :default_compliant_mode
+
+        # @return [Integer, nil] Default average random delay in seconds
+        attr_accessor :default_random_delay
+
+        # @return [Boolean] Default setting for delay based on response times
+        attr_accessor :default_response_delay
+
+        # @return [Boolean] Default setting for SSL certificate verification
+        attr_accessor :default_disable_ssl_certificate_check
+
+        # @return [Boolean] Default flag for Australian proxy preference
+        attr_accessor :default_australian_proxy
+
+        # Configure default settings for all AgentConfig instances
+        # @yield [self] Yields self for configuration
+        # @example
+        #   AgentConfig.configure do |config|
+        #     config.default_timeout = 90
+        #     config.default_random_delay = 5
+        #   end
+        # @return [void]
+        def configure
+          yield self if block_given?
+        end
+
+        # Reset all configuration options to their default values
+        # @return [void]
+        def reset_defaults!
+          @default_timeout = 60
+          @default_compliant_mode = true
+          @default_random_delay = 3
+          @default_response_delay = true
+          @default_disable_ssl_certificate_check = false
+          @default_australian_proxy = false
+        end
+      end
+
+      # Set defaults on load
+      reset_defaults!
+
       # @return [RobotsChecker] Checker for robots.txt rules
       attr_reader :robots_checker
       # @return [AdaptiveDelay] Handler for adaptive delays
@@ -34,29 +97,39 @@ module ScraperUtils
       # @return [Float] Delay used
       attr_reader :delay
 
-      # Creates configuration for a Mechanize agent
-      # @param use_proxy [Boolean] Use the Australian proxy if available
-      # @param timeout [Integer, nil] Timeout for agent connections
-      # @param compliant_mode [Boolean] Comply with headers and robots.txt
-      # @param random_delay [Integer, nil] Average random delay in seconds
-      # @param response_delay [Boolean] Delay based on response times
-      # @param disable_ssl_certificate_check [Boolean] Skip SSL verification
-      # @param australian_proxy [Boolean] Flag for proxy preference
-      def initialize(use_proxy: false,
+      # Creates configuration for a Mechanize agent with sensible defaults
+      # @param use_proxy [Boolean, nil] Use proxy if available (default: false unless changed)
+      # @param timeout [Integer, nil] Timeout for agent connections (default: 60 unless changed)
+      # @param compliant_mode [Boolean, nil] Comply with headers and robots.txt (default: true unless changed)
+      # @param random_delay [Integer, nil] Average random delay in seconds (default: 3 unless changed)
+      # @param response_delay [Boolean, nil] Delay based on response times (default: true unless changed)
+      # @param disable_ssl_certificate_check [Boolean, nil] Skip SSL verification (default: false unless changed)
+      # @param australian_proxy [Boolean, nil] Flag for proxy preference (default: false unless changed)
+      def initialize(use_proxy: nil,
                      timeout: nil,
-                     compliant_mode: false,
+                     compliant_mode: nil,
                      random_delay: nil,
-                     response_delay: false,
-                     disable_ssl_certificate_check: false,
-                     australian_proxy: false)
+                     response_delay: nil,
+                     disable_ssl_certificate_check: nil,
+                     australian_proxy: nil)
+        @use_proxy = use_proxy.nil? ? false : use_proxy
+        @timeout = timeout.nil? ? self.class.default_timeout : timeout
+        @compliant_mode = compliant_mode.nil? ? self.class.default_compliant_mode : compliant_mode
+        @random_delay = random_delay.nil? ? self.class.default_random_delay : random_delay
+        @response_delay = response_delay.nil? ? self.class.default_response_delay : response_delay
+        @disable_ssl_certificate_check = disable_ssl_certificate_check.nil? ?
+                                           self.class.default_disable_ssl_certificate_check :
+                                           disable_ssl_certificate_check
+        @australian_proxy = australian_proxy.nil? ? self.class.default_australian_proxy : australian_proxy
+
         # Validate proxy URL format if proxy will be used
-        @use_proxy = use_proxy && australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
+        @use_proxy = @use_proxy && @australian_proxy && !ScraperUtils.australian_proxy.to_s.empty?
         if @use_proxy
           uri = begin
-            URI.parse(ScraperUtils.australian_proxy.to_s)
-          rescue URI::InvalidURIError => e
-            raise URI::InvalidURIError, "Invalid proxy URL format: #{e.message}"
-          end
+                  URI.parse(ScraperUtils.australian_proxy.to_s)
+                rescue URI::InvalidURIError => e
+                  raise URI::InvalidURIError, "Invalid proxy URL format: #{e.message}"
+                end
           unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
             raise URI::InvalidURIError, "Proxy URL must start with http:// or https://"
           end
@@ -65,15 +138,8 @@ module ScraperUtils
           end
         end
 
-        @timeout = timeout
-        @compliant_mode = compliant_mode
-        @random_delay = random_delay
-        @response_delay = response_delay
-        @disable_ssl_certificate_check = disable_ssl_certificate_check
-        @australian_proxy = australian_proxy
-
         # Calculate random delay parameters
-        target_delay = random_delay || 10
+        target_delay = @random_delay || 10
         @min_random = Math.sqrt(target_delay * 3.0 / 13.0)
         @max_random = 3 * @min_random
 
@@ -98,9 +164,13 @@ module ScraperUtils
           agent.read_timeout = @timeout
         end
 
+        if compliant_mode
+          agent.request_headers ||= {}
+          agent.request_headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          agent.request_headers["Upgrade-Insecure-Requests"] = "1"
+        end
         if @use_proxy
           agent.agent.set_proxy(ScraperUtils.australian_proxy)
-          agent.request_headers ||= {}
           agent.request_headers["Accept-Language"] = "en-AU,en-US;q=0.9,en;q=0.8"
           verify_proxy_works(agent)
         end
@@ -151,7 +221,7 @@ module ScraperUtils
         @delay = [
           robots_checker.crawl_delay,
           (response_delay ? adaptive_delay.next_delay(uri, response_time) : 0.0),
-          (random_delay ? rand(@min_random..@max_random)**2 : 0.0)
+          (random_delay ? rand(@min_random..@max_random) ** 2 : 0.0)
         ].compact.max&.round(3)
 
         if @delay&.positive?
