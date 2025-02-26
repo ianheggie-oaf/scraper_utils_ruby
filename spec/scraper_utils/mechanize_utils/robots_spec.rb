@@ -15,37 +15,26 @@ RSpec.describe ScraperUtils::MechanizeUtils do
       before do
         stub_request(:get, "https://example.com/robots.txt")
           .to_return(status: 200, body: <<~ROBOTS
-            User-agent: *
-            Crawl-delay: 1
-
-            User-agent: GoogleBot
             User-agent: ScraperUtils
-            User-agent: OtherBot
             Disallow: /private
           ROBOTS
           )
       end
 
-      it "respects robots.txt Disallow in compliant mode, raising UnprocessableSite" do
-        stub_request(:get, "https://example.com/robots.txt")
-          .to_return(status: 200, body: <<~ROBOTS)
-            User-agent: ScraperUtils
-            Disallow: /private
-          ROBOTS
-
-        stub_request(:get, "https://example.com/private")
-          .to_return(status: 200, body: page_content)
-
-        agent = described_class.mechanize_agent(compliant_mode: true)
-        expect { agent.get("https://example.com/private") }
-          .to raise_error(ScraperUtils::UnprocessableSite)
-      end
-
-      it "ignores robots.txt when compliant mode is off" do
+      it "respects robots.txt Disallow by default (compliant mode on)" do
         stub_request(:get, "https://example.com/private")
           .to_return(status: 200, body: page_content)
 
         agent = described_class.mechanize_agent
+        expect { agent.get("https://example.com/private") }
+          .to raise_error(ScraperUtils::UnprocessableSite)
+      end
+
+      it "ignores robots.txt when compliant mode is explicitly set to false" do
+        stub_request(:get, "https://example.com/private")
+          .to_return(status: 200, body: page_content)
+
+        agent = described_class.mechanize_agent(compliant_mode: false)
         expect { agent.get("https://example.com/private") }.not_to raise_error
       end
     end
