@@ -81,6 +81,31 @@ module ScraperUtils
 
       puts "MORPH_EXPECT_BAD=#{ENV.fetch('MORPH_EXPECT_BAD', nil)}" if expect_bad.any?
 
+      # Print summary table
+      puts "\nScraping Summary:"
+      header_format = "%-20s %6s %6s %s"
+      separator_format = "%-20s %6s %6s %s"
+    
+      puts header_format % ["Authority", "OK", "Bad", "Exception"]
+      puts separator_format % ['-' * 20, '-' * 6, '-' * 6, '-' * 50]
+
+      authorities.each do |authority|
+        result = results[authority] || {}
+        stats = ScraperUtils::DataQualityMonitor.stats&.fetch(authority, {}) || {}
+      
+        ok_records = result[:records_scraped] || 0
+        bad_records = result[:unprocessable_records] || stats[:unprocessed] || 0
+        exception_msg = result[:error]&.message&.slice(0, 50) || '-'
+      
+        puts header_format % [
+          authority.to_s, 
+          ok_records, 
+          bad_records, 
+          exception_msg
+        ]
+      end
+      puts
+
       errors = []
 
       # Check for authorities that were expected to be bad but are now working
