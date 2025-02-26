@@ -7,31 +7,21 @@ RSpec.describe ScraperUtils::LogUtils do
   describe ".log_scraping_run" do
     let(:run_at) { Time.now - 123 }
     let(:authorities) { %i[good_council interrupted_council broken_council empty_council] }
-    let(:results) do
-      {
-        good_council: {
-          records_scraped: 10,
-          unprocessable_records: 0,
-          error: nil,
-          proxy_used: false
-        },
-        interrupted_council: {
-          records_scraped: 5,
-          error: StandardError.new("Test error"),
-          proxy_used: true
-        },
-        broken_council: {
-          records_scraped: 0,
-          unprocessable_records: 10,
-          error: StandardError.new("Test error"),
-          proxy_used: true
-        },
-        empty_council: {
-          records_scraped: 0,
-          error: nil,
-          proxy_used: true
-        }
+    
+    # Mock DataQualityMonitor stats
+    before do
+      allow(ScraperUtils::DataQualityMonitor).to receive(:stats).and_return({
+        good_council: { saved: 10, unprocessed: 0 },
+        interrupted_council: { saved: 5, unprocessed: 0 },
+        broken_council: { saved: 0, unprocessed: 10 },
+        empty_council: { saved: 0, unprocessed: 0 }
+      })
+    end
 
+    let(:exceptions) do
+      {
+        interrupted_council: StandardError.new("Test error"),
+        broken_council: StandardError.new("Test error")
       }
     end
 
@@ -332,18 +322,19 @@ RSpec.describe ScraperUtils::LogUtils do
     end
 
     context "when an expected bad authority starts working" do
-      let(:results) do
-        {
-          good_council: { records_scraped: 10, error: nil },
-          bad_council: { records_scraped: 5, error: nil },
-          broken_council: { records_scraped: 0, error: nil }
-        }
+      let(:exceptions) { {} }
+
+      before do
+        # Mock DataQualityMonitor stats for bad_council
+        allow(ScraperUtils::DataQualityMonitor).to receive(:stats).and_return({
+          bad_council: { saved: 5, unprocessed: 0 }
+        })
       end
 
       it "raises an error with a warning about removing from EXPECT_BAD" do
         ENV["MORPH_EXPECT_BAD"] = "bad_council"
 
-        expect { described_class.report_on_results(authorities, results) }
+        expect { described_class.report_on_results([:good_council, :bad_council, :broken_council], exceptions) }
           .to raise_error(RuntimeError, /WARNING: Remove bad_council from MORPH_EXPECT_BAD/)
 
         ENV["MORPH_EXPECT_BAD"] = nil
@@ -351,23 +342,13 @@ RSpec.describe ScraperUtils::LogUtils do
     end
 
     context "when an unexpected error occurs" do
-      let(:results) do
-        {
-          good_council: { records_scraped: 10, error: nil },
-          bad_council: { records_scraped: 0, error: nil },
-          broken_council: {
-            records_scraped: 0,
-            error: StandardError.new("Unexpected error")
-          }
-        }
-      end
-
       it "raises an error with details about unexpected errors" do
         ENV["MORPH_EXPECT_BAD"] = "bad_council"
 
-        expect { described_class.report_on_results(authorities, results) }
-          .to raise_error(RuntimeError, /ERROR: Unexpected errors in: broken_council/)
-          .and output(/broken_council: StandardError - Unexpected error/).to_stdout
+        expect { described_class.report_on_results(authorities, exceptions) }
+          .to raise_error(RuntimeError, /ERROR: Unexpected errors in: interrupted_council,broken_council/)
+          .and output(/interrupted_council: StandardError - Test error/).to_stdout
+          .and output(/broken_council: StandardError - Test error/).to_stdout
 
         ENV["MORPH_EXPECT_BAD"] = nil
       end
