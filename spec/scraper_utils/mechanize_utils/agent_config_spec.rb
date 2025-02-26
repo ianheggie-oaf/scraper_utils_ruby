@@ -24,7 +24,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     context "with no options" do
       it "creates default configuration and displays it" do
         expect { described_class.new }.to output(
-          "Configuring Mechanize agent with australian_proxy=false\n"
+          "Configuring Mechanize agent with default args\n"
         ).to_stdout
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
             response_delay: true,
             disable_ssl_certificate_check: true
           )
-        end.to output(/Configuring Mechanize agent with .*timeout=30.*use_proxy.*compliant_mode.*random_delay=5.*response_delay.*disable_ssl_certificate_check/m).to_stdout
+        end.to output(/Configuring Mechanize agent with timeout=30, use_proxy, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
       end
     end
 
@@ -61,7 +61,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       it "handles proxy without australian_proxy authority" do
         expect do
           described_class.new(use_proxy: true)
-        end.to output(/Configuring Mechanize agent with australian_proxy=false/).to_stdout
+        end.to output(/Configuring Mechanize agent with default args/).to_stdout
       end
 
       it "handles empty proxy URL" do

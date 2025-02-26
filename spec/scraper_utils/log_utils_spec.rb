@@ -367,6 +367,7 @@ RSpec.describe ScraperUtils::LogUtils do
 
         expect { described_class.report_on_results(authorities, results) }
           .to raise_error(RuntimeError, /ERROR: Unexpected errors in: broken_council/)
+          .and output(/broken_council: StandardError - Unexpected error/).to_stdout
 
         ENV["MORPH_EXPECT_BAD"] = nil
       end
