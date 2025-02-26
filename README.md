@@ -77,6 +77,31 @@ to receive a `Mexhanize::Agent` configured accordingly.
 
 The delays use a Mechanise hook to wrap all requests so you don't need to do anything else
 
+### Default Configuration
+
+By default, the Mechanize agent is configured with the following settings:
+
+* `timeout`: 60 seconds
+* `compliant_mode`: `true`
+* `random_delay`: 3 seconds
+* `response_delay`: `true`
+* `disable_ssl_certificate_check`: `false`
+* `australian_proxy`: `false`
+
+You can globally modify these defaults using the configuration method:
+
+```ruby
+ScraperUtils::MechanizeUtils::AgentConfig.configure do |config|
+  config.default_timeout = 90
+  config.default_compliant_mode = false
+  config.default_random_delay = 5
+  config.default_response_delay = false
+  config.default_disable_ssl_certificate_check = true
+end
+```
+
+These global defaults will be used for all Mechanize agents created by `ScraperUtils::MechanizeUtils.mechanize_agent` unless overridden by specific options.
+
 ### Example updated `scraper.rb` file
 
 Update your `scraper.rb` as per the following example for basic utilities:
