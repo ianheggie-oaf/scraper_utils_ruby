@@ -51,7 +51,7 @@ RSpec.describe ScraperUtils::LogUtils do
                              "run_at" => run_at.iso8601,
                              "status" => "interrupted",
                              "unprocessable_records" => 0,
-                             "used_proxy" => 1),
+                             "used_proxy" => 0),
               ScraperUtils::LogUtils::LOG_TABLE)
         .once
       expect(ScraperWiki).to receive(:save_sqlite)
@@ -65,7 +65,7 @@ RSpec.describe ScraperUtils::LogUtils do
                              "run_at" => run_at.iso8601,
                              "status" => "failed",
                              "unprocessable_records" => 10,
-                             "used_proxy" => 1),
+                             "used_proxy" => 0),
               ScraperUtils::LogUtils::LOG_TABLE)
         .once
       expect(ScraperWiki).to receive(:save_sqlite)
@@ -79,7 +79,7 @@ RSpec.describe ScraperUtils::LogUtils do
                              "run_at" => run_at.iso8601,
                              "status" => "failed",
                              "unprocessable_records" => 0,
-                             "used_proxy" => 1),
+                             "used_proxy" => 0),
               ScraperUtils::LogUtils::LOG_TABLE)
         .once
       expect(ScraperWiki).to receive(:save_sqlite)
@@ -98,7 +98,7 @@ RSpec.describe ScraperUtils::LogUtils do
               ScraperUtils::LogUtils::SUMMARY_TABLE)
         .once
 
-      described_class.log_scraping_run(run_at, 1, authorities, results)
+      described_class.log_scraping_run(run_at, 1, authorities, exceptions)
     end
 
     it "raises error for invalid start time" do
