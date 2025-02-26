@@ -102,7 +102,7 @@ module ScraperUtils
           agent.agent.set_proxy(ScraperUtils.australian_proxy)
           agent.request_headers ||= {}
           agent.request_headers["Accept-Language"] = "en-AU,en-US;q=0.9,en;q=0.8"
-          verify_proxy_ip(agent)
+          verify_proxy_works(agent)
         end
 
         @connection_started_at = nil
@@ -162,19 +162,30 @@ module ScraperUtils
         response
       end
 
-      def verify_proxy_ip(agent)
+      def verify_proxy_works(agent)
         my_ip = MechanizeUtils.public_ip(agent)
         begin
           IPAddr.new(my_ip)
         rescue IPAddr::InvalidAddressError => e
           raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
         end
+        puts "Proxy is using IP address: #{my_ip.inspect}"
+        my_headers = MechanizeUtils::public_headers(agent)
+        begin
+          # Check response is JSON just to be safe!
+          headers = JSON.parse(my_headers)
+          puts "Headers passed by proxy:"
+          puts JSON.pretty_generate(headers)
+        rescue JSON::ParserError => e
+          puts "Couldn't parse public_headers: #{e}! Raw response:"
+          puts my_headers.inspect
+        end
       rescue Net::OpenTimeout, Timeout::Error => e
         raise "Proxy check timed out: #{e}"
       rescue Errno::ECONNREFUSED, Net::HTTP::Persistent::Error => e
         raise "Failed to connect to proxy: #{e}"
       rescue Mechanize::ResponseCodeError => e
-        raise "Proxy error: #{e}"
+        raise "Proxy check error: #{e}"
       end
     end
   end
