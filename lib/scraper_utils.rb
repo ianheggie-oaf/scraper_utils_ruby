@@ -2,10 +2,12 @@
 
 require "scraper_utils/adaptive_delay"
 require "scraper_utils/authority_utils"
+require "scraper_utils/data_quality_monitor"
 require "scraper_utils/db_utils"
 require "scraper_utils/debug_utils"
 require "scraper_utils/log_utils"
 require "scraper_utils/mechanize_utils"
+require "scraper_utils/robots_checker"
 require "scraper_utils/version"
 
 # Utilities for planningalerts scrapers
