@@ -220,8 +220,10 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
           .to_return(body: "1.2.3.4\n")
         stub_request(:get, ScraperUtils::MechanizeUtils::HEADERS_ECHO_URL)
           .to_return(body: 'Not a valid JSON')
-        # force use of new public_ip
-        ScraperUtils::MechanizeUtils.public_ip(nil, force: true)
+        
+        # Force clearing of cached public headers and IP
+        ScraperUtils::MechanizeUtils.instance_variable_set(:@public_ip, nil)
+        ScraperUtils::MechanizeUtils.instance_variable_set(:@public_headers, nil)
 
         config = described_class.new(use_proxy: true, australian_proxy: true)
         expect do
