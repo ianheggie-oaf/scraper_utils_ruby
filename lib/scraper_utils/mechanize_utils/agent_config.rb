@@ -122,7 +122,7 @@ module ScraperUtils
         @timeout = timeout.nil? ? self.class.default_timeout : timeout
         @compliant_mode = compliant_mode.nil? ? self.class.default_compliant_mode : compliant_mode
         @random_delay = random_delay.nil? ? self.class.default_random_delay : random_delay
-        @response_delay = response_delay.nil? ? self.class.default_response_delay : response_delay
+        @response_delay = @compliant_mode || (response_delay.nil? ? self.class.default_response_delay : response_delay)
         @disable_ssl_certificate_check = disable_ssl_certificate_check.nil? ?
                                            self.class.default_disable_ssl_certificate_check :
                                            disable_ssl_certificate_check
@@ -162,15 +162,15 @@ module ScraperUtils
       # @param agent [Mechanize] The agent to configure
       # @return [void]
       def configure_agent(agent)
-        agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if disable_ssl_certificate_check
-        agent.user_agent = user_agent if compliant_mode
+        agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if @disable_ssl_certificate_check
 
         if @timeout
           agent.open_timeout = @timeout
           agent.read_timeout = @timeout
         end
 
-        if compliant_mode
+        if @compliant_mode
+          agent.user_agent = user_agent
           agent.request_headers ||= {}
           agent.request_headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
           agent.request_headers["Upgrade-Insecure-Requests"] = "1"
