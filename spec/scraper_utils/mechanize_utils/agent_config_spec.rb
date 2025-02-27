@@ -79,7 +79,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         expect do
           described_class.new
         end.to output(
-          "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, response_delay\n"
+          "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, max_load=20.0%\n"
         ).to_stdout
       end
 
@@ -88,7 +88,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
         expect do
           described_class.new(australian_proxy: true)
         end.to output(
-          "Configuring Mechanize agent with timeout=60, MORPH_AUSTRALIAN_PROXY not set, compliant_mode, random_delay=3, response_delay\n"
+          "Configuring Mechanize agent with timeout=60, MORPH_AUSTRALIAN_PROXY not set, compliant_mode, random_delay=3, max_load=20.0%\n"
         ).to_stdout
       end
     end
@@ -106,10 +106,14 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     end
 
     context "with post_connect_hook" do
-      before { ENV["DEBUG"] = "1" }
+      before { 
+        ENV["DEBUG"] = "1" 
+        stub_request(:get, "https://example.com/robots.txt")
+          .to_return(status: 200, body: "User-agent: *\nAllow: /\n")
+      }
 
       it "logs connection details" do
-        config = described_class.new
+        config = described_class.new(user_agent: "TestAgent")
         uri = URI("https://example.com")
         response = double(inspect: "test response")
         # required for post_connect_hook
@@ -120,7 +124,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       end
 
       it "logs delay details when delay applied" do
-        config = described_class.new(random_delay: 1)
+        config = described_class.new(random_delay: 1, user_agent: "TestAgent")
         uri = URI("https://example.com")
         response = double(inspect: "test response")
         # required for post_connect_hook
