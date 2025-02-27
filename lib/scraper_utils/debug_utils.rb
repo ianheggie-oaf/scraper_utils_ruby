@@ -16,7 +16,8 @@ module ScraperUtils
     def self.debug_request(method, url, parameters: nil, headers: nil, body: nil)
       return unless ScraperUtils.debug?
 
-      puts "\n🔍 #{method.upcase} #{url}"
+      puts
+      ScraperUtils::FiberScheduler.log "🔍 #{method.upcase} #{url}"
       puts "Parameters:", JSON.pretty_generate(parameters) if parameters
       puts "Headers:", JSON.pretty_generate(headers) if headers
       puts "Body:", JSON.pretty_generate(body) if body
@@ -30,15 +31,15 @@ module ScraperUtils
     def self.debug_page(page, message)
       return unless ScraperUtils.debug?
 
-      puts "",
-           "🔍 DEBUG: #{message}"
+      puts
+      ScraperUtils::FiberScheduler.log "🔍 DEBUG: #{message}"
       puts "Current URL: #{page.uri}"
       puts "Page title: #{page.at('title').text.strip}" if page.at("title")
       puts "",
-           "Page content:"
-      puts "-" * 40
-      puts page.body
-      puts "-" * 40
+           "Page content:",
+           "-" * 40,
+           page.body,
+           "-" * 40
     end
 
     # Logs details about a specific page selector when debug mode is enabled
@@ -50,7 +51,8 @@ module ScraperUtils
     def self.debug_selector(page, selector, message)
       return unless ScraperUtils.debug?
 
-      puts "\n🔍 DEBUG: #{message}"
+      puts
+      ScraperUtils::FiberScheduler.log "🔍 DEBUG: #{message}"
       puts "Looking for selector: #{selector}"
       element = page.at(selector)
       if element

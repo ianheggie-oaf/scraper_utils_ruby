@@ -190,12 +190,12 @@ module ScraperUtils
         display_args << "max_load=#{@max_load}%" if @max_load
         display_args << "disable_ssl_certificate_check" if @disable_ssl_certificate_check
         display_args << "default args" if display_args.empty?
-        puts "Configuring Mechanize agent with #{display_args.join(', ')}"
+        ScraperUtils::FiberScheduler.log "Configuring Mechanize agent with #{display_args.join(', ')}"
       end
 
       def pre_connect_hook(_agent, request)
         @connection_started_at = Time.now
-        puts "Pre Connect request: #{request.inspect} at #{@connection_started_at}" if ENV["DEBUG"]
+        ScraperUtils::FiberScheduler.log "Pre Connect request: #{request.inspect} at #{@connection_started_at}" if ENV["DEBUG"]
       end
 
       def post_connect_hook(_agent, uri, response, _body)
@@ -203,7 +203,7 @@ module ScraperUtils
 
         response_time = Time.now - @connection_started_at
         if ENV["DEBUG"]
-          puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds"
+          ScraperUtils::FiberScheduler.log "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds"
         end
 
         if @robots_checker&.disallowed?(uri)
@@ -232,7 +232,7 @@ module ScraperUtils
         rescue IPAddr::InvalidAddressError => e
           raise "Invalid public IP address returned by proxy check: #{my_ip.inspect}: #{e}"
         end
-        puts "Proxy is using IP address: #{my_ip.inspect}"
+        ScraperUtils::FiberScheduler.log "Proxy is using IP address: #{my_ip.inspect}"
         my_headers = MechanizeUtils::public_headers(agent)
         begin
           # Check response is JSON just to be safe!

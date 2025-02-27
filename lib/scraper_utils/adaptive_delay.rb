@@ -25,8 +25,8 @@ class AdaptiveDelay
     @response_multiplier = (100.0 - @max_load) / @max_load
 
     if ENV["DEBUG"]
-      puts "AdaptiveDelay initialized with delays between #{@min_delay} and #{@max_delay} seconds"
-      puts "Using max_load of #{@max_load}% (response time multiplier: #{@response_multiplier.round(2)}x)"
+      ScraperUtils::FiberScheduler.log "AdaptiveDelay initialized with delays between #{@min_delay} and #{@max_delay} seconds"
+      ScraperUtils::FiberScheduler.log "Using max_load of #{@max_load}% (response time multiplier: #{@response_multiplier.round(2)}x)"
     end
   end
 
@@ -54,7 +54,7 @@ class AdaptiveDelay
     delay = delay.clamp(@min_delay, @max_delay)
 
     if ENV["DEBUG"]
-      puts "Adaptive delay for #{uris_domain} updated to " \
+      ScraperUtils::FiberScheduler.log "Adaptive delay for #{uris_domain} updated to " \
              "#{delay.round(2)}s (target: #{@response_multiplier.round(1)}x " \
              "response_time of #{response_time.round(2)}s)"
     end

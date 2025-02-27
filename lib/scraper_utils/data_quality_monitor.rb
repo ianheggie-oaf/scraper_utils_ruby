@@ -34,7 +34,7 @@ module ScraperUtils
     def self.log_unprocessable_record(e, record)
       start_authority(:"") unless @stats
       @stats[@authority_label][:unprocessed] += 1
-      puts "Erroneous record #{@authority_label} - #{record&.fetch('address', nil) || record.inspect}: #{e}"
+      ScraperUtils::FiberScheduler.log "Erroneous record #{@authority_label} - #{record&.fetch('address', nil) || record.inspect}: #{e}"
       if @stats[@authority_label][:unprocessed] > threshold
         raise ScraperUtils::UnprocessableSite, "Too many unprocessable_records for #{@authority_label}: #{@stats[@authority_label].inspect} - aborting processing of site!"
       end
@@ -47,7 +47,7 @@ module ScraperUtils
     def self.log_saved_record(record)
       start_authority(:"") unless @stats
       @stats[@authority_label][:saved] += 1
-      puts "Saving record #{@authority_label} - #{record['address']}"
+      ScraperUtils::FiberScheduler.log "Saving record #{@authority_label} - #{record['address']}"
     end
   end
 end
