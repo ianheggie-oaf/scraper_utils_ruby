@@ -272,4 +272,86 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       end
     end
   end
-end
+  describe "class methods" do
+    describe ".configure" do
+      it "allows configuration of default settings" do
+        original_timeout = described_class.default_timeout
+        
+        described_class.configure do |config|
+          config.default_timeout = 90
+        end
+
+        expect(described_class.default_timeout).to eq(90)
+
+        # Reset to original value
+        described_class.default_timeout = original_timeout
+      end
+    end
+
+    describe ".reset_defaults!" do
+      it "resets all configuration options to their default values" do
+        described_class.configure do |config|
+          config.default_timeout = 999
+          config.default_compliant_mode = false
+          config.default_random_delay = 99
+          config.default_max_load = 50.0
+          config.default_disable_ssl_certificate_check = true
+          config.default_australian_proxy = true
+          config.default_user_agent = "Test Agent"
+        end
+
+        described_class.reset_defaults!
+
+        expect(described_class.default_timeout).to eq(60)
+        expect(described_class.default_compliant_mode).to be(true)
+        expect(described_class.default_random_delay).to eq(3)
+        expect(described_class.default_max_load).to eq(20.0)
+        expect(described_class.default_disable_ssl_certificate_check).to be(false)
+        expect(described_class.default_australian_proxy).to be_nil
+        expect(described_class.default_user_agent).to be_nil
+      end
+    end
+  end
+
+  describe "random delay calculation" do
+    it "calculates min and max random delays correctly" do
+      config = described_class.new(random_delay: 5)
+      
+      expect(config.min_random).to be_within(0.01).of(Math.sqrt(5 * 3.0 / 13.0))
+      expect(config.max_random).to be_within(0.01).of(3 * config.min_random)
+    end
+
+    it "handles nil random delay" do
+      config = described_class.new(random_delay: nil)
+      
+      expect(config.min_random).to be_nil
+      expect(config.max_random).to be_nil
+    end
+  end
+
+  describe "user agent configuration" do
+    context "with ENV['MORPH_USER_AGENT']" do
+      before do
+        ENV['MORPH_USER_AGENT'] = "TestAgent-TODAY"
+        ENV['MORPH_TODAY'] = "2025-02-27"
+      end
+
+      after do
+        ENV['MORPH_USER_AGENT'] = nil
+        ENV['MORPH_TODAY'] = nil
+      end
+
+      it "replaces TODAY with current date" do
+        config = described_class.new(compliant_mode: true)
+        expect(config.user_agent).to include("2025-02-27")
+      end
+    end
+
+    context "with default compliant mode" do
+      it "generates a default user agent with ScraperUtils version" do
+        config = described_class.new(compliant_mode: true)
+        expect(config.user_agent).to match(/ScraperUtils\/\d+\.\d+\.\d+/)
+        expect(config.user_agent).to include("+https://github.com/ianheggie-oaf/scraper_utils")
+      end
+    end
+  end
