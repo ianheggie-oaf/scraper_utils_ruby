@@ -34,8 +34,8 @@ module ScraperUtils
         # @return [Integer, nil] Default average random delay in seconds
         attr_accessor :default_random_delay
 
-        # @return [Boolean] Default setting for delay based on response times
-        attr_accessor :default_response_delay
+        # @return [Float, nil] Default maximum server load percentage (nil = no response delay)
+        attr_accessor :default_max_load
 
         # @return [Boolean] Default setting for SSL certificate verification
         attr_accessor :default_disable_ssl_certificate_check
@@ -49,6 +49,7 @@ module ScraperUtils
         #   AgentConfig.configure do |config|
         #     config.default_timeout = 90
         #     config.default_random_delay = 5
+        #     config.default_max_load = 15
         #   end
         # @return [void]
         def configure
@@ -61,7 +62,7 @@ module ScraperUtils
           @default_timeout = 60
           @default_compliant_mode = true
           @default_random_delay = 3
-          @default_response_delay = true
+          @default_max_load = 20.0
           @default_disable_ssl_certificate_check = false
           @default_australian_proxy = false
         end
@@ -85,8 +86,8 @@ module ScraperUtils
       # @return [Integer, nil] Target random delay in seconds
       attr_reader :random_delay
 
-      # @return [Boolean] Whether to use response-based delays
-      attr_reader :response_delay
+      # @return [Float, nil] Maximum server load percentage (nil = no response delay)
+      attr_reader :max_load
 
       # @return [Boolean] Whether to disable SSL certificate verification
       attr_reader :disable_ssl_certificate_check
@@ -110,19 +111,22 @@ module ScraperUtils
       # @param timeout [Integer, nil] Timeout for agent connections (default: 60 unless changed)
       # @param compliant_mode [Boolean, nil] Comply with headers and robots.txt (default: true unless changed)
       # @param random_delay [Integer, nil] Average random delay in seconds (default: 3 unless changed)
-      # @param response_delay [Boolean, nil] Delay based on response times (default: true unless changed)
+      # @param max_load [Float, nil] Maximum server load percentage (nil = no response delay, default: 20%)
+      #                              When compliant_mode is true, max_load is capped at 33%
       # @param disable_ssl_certificate_check [Boolean, nil] Skip SSL verification (default: false unless changed)
       # @param australian_proxy [Boolean, nil] Use proxy if available (default: false unless changed)
       def initialize(timeout: nil,
                      compliant_mode: nil,
                      random_delay: nil,
-                     response_delay: nil,
+                     max_load: nil,
                      disable_ssl_certificate_check: nil,
                      australian_proxy: nil)
         @timeout = timeout.nil? ? self.class.default_timeout : timeout
         @compliant_mode = compliant_mode.nil? ? self.class.default_compliant_mode : compliant_mode
         @random_delay = random_delay.nil? ? self.class.default_random_delay : random_delay
-        @response_delay = @compliant_mode || (response_delay.nil? ? self.class.default_response_delay : response_delay)
+        @max_load = max_load.nil? ? self.class.default_max_load : max_load
+        @max_load = [@max_load || 20.0, 33.0].min if @compliant_mode
+
         @disable_ssl_certificate_check = disable_ssl_certificate_check.nil? ?
                                            self.class.default_disable_ssl_certificate_check :
                                            disable_ssl_certificate_check
@@ -144,17 +148,20 @@ module ScraperUtils
           end
         end
 
-        # Calculate random delay parameters
-        target_delay = @random_delay || 10
-        @min_random = Math.sqrt(target_delay * 3.0 / 13.0)
-        @max_random = 3 * @min_random
+        if @random_delay
+          @min_random = Math.sqrt(@random_delay * 3.0 / 13.0)
+          @max_random = 3 * @min_random
+        end
 
-        version = ScraperUtils::VERSION
         today = Date.today.strftime("%Y-%m-%d")
-        @user_agent = "Mozilla/5.0 (compatible; ScraperUtils/#{version} #{today}; +https://github.com/ianheggie-oaf/scraper_utils)"
+        @user_agent = ENV['MORPH_USER_AGENT']&.sub("TODAY", today)
+        if compliant_mode
+          version = ScraperUtils::VERSION
+          @user_agent ||= "Mozilla/5.0 (compatible; ScraperUtils/#{version} #{today}; +https://github.com/ianheggie-oaf/scraper_utils)"
+        end
 
-        @robots_checker = RobotsChecker.new(@user_agent)
-        @adaptive_delay = AdaptiveDelay.new
+        @robots_checker = RobotsChecker.new(@user_agent) if @user_agent
+        @adaptive_delay = AdaptiveDelay.new(max_load: @max_load) if @max_load
         display_options
       end
 
@@ -200,7 +207,7 @@ module ScraperUtils
         end
         display_args << "compliant_mode" if @compliant_mode
         display_args << "random_delay=#{@random_delay}" if @random_delay
-        display_args << "response_delay" if @response_delay
+        display_args << "max_load=#{@max_load}%" if @max_load
         display_args << "disable_ssl_certificate_check" if @disable_ssl_certificate_check
         display_args << "default args" if display_args.empty?
         puts "Configuring Mechanize agent with #{display_args.join(', ')}"
@@ -224,14 +231,14 @@ module ScraperUtils
                 "URL not allowed by robots.txt specific rules: #{uri}"
         end
 
-        @delay = [
-          robots_checker.crawl_delay,
-          (response_delay ? adaptive_delay.next_delay(uri, response_time) : 0.0),
-          (random_delay ? rand(@min_random..@max_random) ** 2 : 0.0)
-        ].compact.max&.round(3)
-
+        delays = {
+          robot_txt: robots_checker&.crawl_delay&.round(3),
+          max_load: @adaptive_delay&.next_delay(uri, response_time)&.round(3),
+          random: (@min_random ? (rand(@min_random..@max_random) ** 2).round(3) : nil)
+        }
+        @delay = delays.values.compact.max
         if @delay&.positive?
-          puts "Delaying #{@delay} seconds" if ENV["DEBUG"]
+          puts "Delaying #{@delay} seconds, max of #{delays.inspect}" if ENV["DEBUG"]
           sleep(@delay)
         end
 

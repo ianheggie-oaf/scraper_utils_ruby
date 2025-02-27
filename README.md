@@ -1,11 +1,43 @@
 ScraperUtils (Ruby)
 ===================
 
-Utilities to help make planningalerts scrapers, especially multis easier to develop, run and debug.
+Utilities to help make planningalerts scrapers, especially multis, easier to develop, run and debug.
 
-WARNING: This is still under development! Breaking changes may occur in version 0!
+WARNING: This is still under development! Breaking changes may occur in version 0.x!
 
-## Installation
+For Server Administrators
+-------------------------
+
+The ScraperUtils library is designed to be a respectful citizen of the web. If you're a server administrator and notice
+our scraper accessing your systems, here's what you should know:
+
+### How to Control Our Behavior
+
+Our scraper utilities respect the standard server **robots.txt** control mechanisms (by default). To control our access:
+
+- Add a section for our user agent: `User-agent: ScraperUtils` (default)
+- Set a crawl delay: `Crawl-delay: 5`
+- If needed specify disallowed paths: `Disallow: /private/`
+
+### Built-in Politeness Features
+
+Even without specific configuration, our scrapers will, by default:
+
+- **Identify themselves**: Our user agent clearly indicates who we are and provides a link to the project repository:
+  `Mozilla/5.0 (compatible; ScraperUtils/0.2.0 2025-02-22; +https://github.com/ianheggie-oaf/scraper_utils)`
+
+- **Limit server load**: We introduce delays to avoid undue load on your server's by default based on your response
+  time.
+  The slower your server is running, the longer the delay we add between requests to help you.
+  In the default "compliant mode" this defaults to 20% and custom settings are capped at 33% maximum.
+
+- **Add randomized delays**: We add random delays between requests to avoid creating regular traffic patterns that might
+  impact server performance (enabled by default).
+
+Our goal is to access public planning information without negatively impacting your services.
+
+Installation
+------------
 
 Add these line to your application's Gemfile:
 
@@ -45,9 +77,8 @@ Alternatively enter your own AUSTRALIAN proxy details when testing.
 To avoid morph complaining about sites that are known to be bad,
 but you want them to keep being tested, list them on `MORPH_EXPECT_BAD`, for example:
 
-
-
 #### `MORPH_AUTHORITIES`
+
 Optionally filter authorities for multi authority scrapers
 via environment variable in morph > scraper > settings or
 in your dev environment:
@@ -56,26 +87,29 @@ in your dev environment:
 export MORPH_AUTHORITIES=noosa,wagga
 ```
 
+#### `DEBUG`
+
+Optionally enable verbose debugging messages when developing:
+
+```bash
+export DEBUG=1
+```
+
 ### Extra Mechanize options
 
 Add `client_options` to your AUTHORITIES configuration and move any of the following settings into it:
 
-* `timeout: Integer` - Timeout for agent connections
-* `australian_proxy: true` - Use the MORPH_AUSTRALIAN_PROXY as proxy
+* `timeout: Integer` - Timeout for agent connections in case the server is slower than normal
+* `australian_proxy: true` - Use the MORPH_AUSTRALIAN_PROXY as proxy url if the site is geo-locked
 * `disable_ssl_certificate_check: true` - Disabled SSL verification for old / incorrect certificates
 
-You can also add the following to (hopefully) be more acceptable and not be blocked by anti scraping technology:
-
-* `compliant_mode: true` - Comply with recommended headers and behaviour to be more acceptable
-* `random_delay: Integer` - Use exponentially weighted random delays to be less Bot like (roughly averaging random_delay
-  seconds) - try 10 seconds to start with
-* `response_delay: true` - Delay requests based on response time to be kind to overloaded servers
+See the documentation on `ScraperUtils::MechanizeUtils::AgentConfig` for more options
 
 Then adjust your code to accept client_options and pass then through to:
 `ScraperUtils::MechanizeUtils.mechanize_agent(client_options || {})`
 to receive a `Mechanize::Agent` configured accordingly.
 
-The delays use a Mechanize hook to wrap all requests so you don't need to do anything else
+The agent returned is configured using Mechanize hooks to implement the desired delays automatically.
 
 ### Default Configuration
 
@@ -86,13 +120,14 @@ ScraperUtils::MechanizeUtils::AgentConfig.configure do |config|
   config.default_timeout = 60
   config.default_compliant_mode = true
   config.default_random_delay = 3
-  config.default_response_delay = true
+  config.default_max_load = 20 # percentage
   config.default_disable_ssl_certificate_check = false
   config.default_australian_proxy = false
 end
 ```
 
-You can modify these global defaults before creating any Mechanize agents. These settings will be used for all Mechanize agents created by `ScraperUtils::MechanizeUtils.mechanize_agent` unless overridden by specific options.
+You can modify these global defaults before creating any Mechanize agents. These settings will be used for all Mechanize
+agents created by `ScraperUtils::MechanizeUtils.mechanize_agent` unless overridden by specific options.
 
 ### Example updated `scraper.rb` file
 
@@ -138,52 +173,52 @@ class Scraper
         end
         # END OF REPLACE
       end
-      rescue StandardError => e
-        warn "#{authority_label}: ERROR: #{e}"
-        warn e.backtrace
-        exceptions[authority_label] = e
-      end
+    rescue StandardError => e
+      warn "#{authority_label}: ERROR: #{e}"
+      warn e.backtrace
+      exceptions[authority_label] = e
     end
+  end
+
+  exceptions
+end
+
+def self.selected_authorities
+  ScraperUtils::AuthorityUtils.selected_authorities(AUTHORITIES.keys)
+end
+
+def self.run(authorities)
+  puts "Scraping authorities: #{authorities.join(', ')}"
+  start_time = Time.now
+  exceptions = scrape(authorities, 1)
+  # Set start_time and attempt to the call above and log run below
+  ScraperUtils::LogUtils.log_scraping_run(
+    start_time,
+    1,
+    authorities,
     exceptions
-  end
+  )
 
+  unless exceptions.empty?
+    puts "\n***************************************************"
+    puts "Now retrying authorities which earlier had failures"
+    puts exceptions.keys.join(", ").to_s
+    puts "***************************************************"
 
-  def self.selected_authorities
-    ScraperUtils::AuthorityUtils.selected_authorities(AUTHORITIES.keys)
-  end
-
-  def self.run(authorities)
-    puts "Scraping authorities: #{authorities.join(', ')}"
     start_time = Time.now
-    exceptions = scrape(authorities, 1)
+    exceptions = scrape(exceptions.keys, 2)
     # Set start_time and attempt to the call above and log run below
     ScraperUtils::LogUtils.log_scraping_run(
       start_time,
-      1,
+      2,
       authorities,
       exceptions
     )
-
-    unless exceptions.empty?
-      puts "\n***************************************************"
-      puts "Now retrying authorities which earlier had failures"
-      puts exceptions.keys.join(", ").to_s
-      puts "***************************************************"
-
-      start_time = Time.now
-      exceptions = scrape(exceptions.keys, 2)
-      # Set start_time and attempt to the call above and log run below
-      ScraperUtils::LogUtils.log_scraping_run(
-        start_time,
-        2,
-        authorities,
-        exceptions
-      )
-    end
-
-    # Report on results, raising errors for unexpected conditions
-    ScraperUtils::LogUtils.report_on_results(authorities, exceptions)
   end
+
+  # Report on results, raising errors for unexpected conditions
+  ScraperUtils::LogUtils.report_on_results(authorities, exceptions)
+end
 end
 
 if __FILE__ == $PROGRAM_NAME
@@ -195,13 +230,14 @@ if __FILE__ == $PROGRAM_NAME
 end
 ```
 
-Your code should raise ScraperUtils::UnprocessableRecord when there is a problem with the data presented on a page for a record.
+Your code should raise ScraperUtils::UnprocessableRecord when there is a problem with the data presented on a page for a
+record.
 Then just before you would normally yield a record for saving, rescue that exception and:
 
-  * Call ScraperUtils::DataQualityMonitor.log_unprocessable_record(e, record)
-  * NOT yield the record for saving
+* Call ScraperUtils::DataQualityMonitor.log_unprocessable_record(e, record)
+* NOT yield the record for saving
 
-In your code update where create a mechanize agent (often `YourScraper.scrape_period`) and the `AUTHORITIES` hash 
+In your code update where create a mechanize agent (often `YourScraper.scrape_period`) and the `AUTHORITIES` hash
 to move mechanize_agent options (like `australian_proxy` and `timeout`) to a hash under a new key: `client_options`.
 For example:
 
