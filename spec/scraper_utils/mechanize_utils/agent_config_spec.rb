@@ -346,7 +346,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
 
       it "replaces TODAY with current date" do
         config = described_class.new(compliant_mode: true)
-        expect(config.user_agent).to include("2025-02-27")
+        expect(config.user_agent).to include(/\d{4}-\d\d-\d\d/)
       end
     end
 

@@ -75,41 +75,15 @@ module ScraperUtils
       # Set defaults on load
       reset_defaults!
 
-      # @return [RobotsChecker] Checker for robots.txt rules
-      attr_reader :robots_checker
-
-      # @return [AdaptiveDelay] Handler for adaptive delays
-      attr_reader :adaptive_delay
-
-      # @return [Boolean] Whether compliant mode is enabled
-      attr_reader :compliant_mode
-
-      # @return [Integer, nil] Timeout in seconds for connections
-      attr_reader :timeout
-
-      # @return [Integer, nil] Target random delay in seconds
-      attr_reader :random_delay
-
-      # @return [Float, nil] Maximum server load percentage (nil = no response delay)
-      attr_reader :max_load
-
-      # @return [Boolean] Whether to disable SSL certificate verification
-      attr_reader :disable_ssl_certificate_check
 
       # @return [String] User agent string
       attr_reader :user_agent
 
-      # @return [Time] When the current request started
-      attr_reader :connection_started_at
+      # Give access for testing
 
-      # @return [Float] Minimum random delay
+      attr_reader :max_load
       attr_reader :min_random
-
-      # @return [Float] Maximum random delay
       attr_reader :max_random
-
-      # @return [Float] Delay used
-      attr_reader :delay
 
       # Creates configuration for a Mechanize agent with sensible defaults
       # @param timeout [Integer, nil] Timeout for agent connections (default: 60 unless changed)
@@ -156,13 +130,13 @@ module ScraperUtils
         end
 
         if @random_delay
-          @min_random = Math.sqrt(@random_delay * 3.0 / 13.0)
-          @max_random = 3 * @min_random
+          @min_random = Math.sqrt(@random_delay * 3.0 / 13.0).round(3)
+          @max_random = (3 * @min_random).round(3)
         end
 
         today = Date.today.strftime("%Y-%m-%d")
         @user_agent = ENV['MORPH_USER_AGENT']&.sub("TODAY", today)
-        if compliant_mode
+        if @compliant_mode
           version = ScraperUtils::VERSION
           @user_agent ||= "Mozilla/5.0 (compatible; ScraperUtils/#{version} #{today}; +https://github.com/ianheggie-oaf/scraper_utils)"
         end
@@ -182,7 +156,6 @@ module ScraperUtils
           agent.open_timeout = @timeout
           agent.read_timeout = @timeout
         end
-
         if @compliant_mode
           agent.user_agent = user_agent
           agent.request_headers ||= {}
@@ -233,13 +206,13 @@ module ScraperUtils
           puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds"
         end
 
-        if robots_checker&.disallowed?(uri)
+        if @robots_checker&.disallowed?(uri)
           raise ScraperUtils::UnprocessableSite,
                 "URL is disallowed by robots.txt specific rules: #{uri}"
         end
 
         delays = {
-          robot_txt: robots_checker&.crawl_delay&.round(3),
+          robot_txt: @robots_checker&.crawl_delay&.round(3),
           max_load: @adaptive_delay&.next_delay(uri, response_time)&.round(3),
           random: (@min_random ? (rand(@min_random..@max_random) ** 2).round(3) : nil)
         }
