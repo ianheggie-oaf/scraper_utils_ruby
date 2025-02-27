@@ -43,6 +43,9 @@ module ScraperUtils
         # @return [Boolean] Default flag for Australian proxy preference
         attr_accessor :default_australian_proxy
 
+        # @return [String, nil] Default Mechanize user agent
+        attr_accessor :default_user_agent
+
         # Configure default settings for all AgentConfig instances
         # @yield [self] Yields self for configuration
         # @example
@@ -64,7 +67,8 @@ module ScraperUtils
           @default_random_delay = 3
           @default_max_load = 20.0
           @default_disable_ssl_certificate_check = false
-          @default_australian_proxy = false
+          @default_australian_proxy = nil
+          @default_user_agent = nil
         end
       end
 
@@ -115,17 +119,20 @@ module ScraperUtils
       #                              When compliant_mode is true, max_load is capped at 33%
       # @param disable_ssl_certificate_check [Boolean, nil] Skip SSL verification (default: false unless changed)
       # @param australian_proxy [Boolean, nil] Use proxy if available (default: false unless changed)
+      # @param user_agent [String, nil] Configure Mechanize user agent
       def initialize(timeout: nil,
                      compliant_mode: nil,
                      random_delay: nil,
                      max_load: nil,
                      disable_ssl_certificate_check: nil,
-                     australian_proxy: nil)
+                     australian_proxy: false,
+                     user_agent: nil)
         @timeout = timeout.nil? ? self.class.default_timeout : timeout
         @compliant_mode = compliant_mode.nil? ? self.class.default_compliant_mode : compliant_mode
         @random_delay = random_delay.nil? ? self.class.default_random_delay : random_delay
         @max_load = max_load.nil? ? self.class.default_max_load : max_load
         @max_load = [@max_load || 20.0, 33.0].min if @compliant_mode
+        @user_agent = user_agent.nil? ? self.class.default_user_agent : user_agent
 
         @disable_ssl_certificate_check = disable_ssl_certificate_check.nil? ?
                                            self.class.default_disable_ssl_certificate_check :
@@ -226,9 +233,9 @@ module ScraperUtils
           puts "Post Connect uri: #{uri.inspect}, response: #{response.inspect} after #{response_time} seconds"
         end
 
-        if compliant_mode && !robots_checker.allowed?(uri)
+        if robots_checker&.disallowed?(uri)
           raise ScraperUtils::UnprocessableSite,
-                "URL not allowed by robots.txt specific rules: #{uri}"
+                "URL is disallowed by robots.txt specific rules: #{uri}"
         end
 
         delays = {

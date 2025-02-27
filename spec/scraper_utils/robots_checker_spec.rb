@@ -33,7 +33,7 @@ RSpec.describe ScraperUtils::RobotsChecker do
     end
   end
 
-  describe "#allowed?" do
+  describe "#disallowed?" do
     context "with debug logging" do
       before { ENV["DEBUG"] = "1" }
 
@@ -42,28 +42,28 @@ RSpec.describe ScraperUtils::RobotsChecker do
           .to_raise(StandardError.new("test error"))
 
         expect do
-          robots_checker.allowed?("https://example.com/test")
+          robots_checker.disallowed?("https://example.com/test")
         end.to output(/Warning: Failed to fetch robots.txt.*test error/m).to_stdout
       end
     end
 
     context "when checking simple URLs" do
       it "returns true for empty URL" do
-        expect(robots_checker.allowed?("")).to be true
+        expect(robots_checker.disallowed?("")).to be false
       end
 
       it "returns true for missing URL" do
-        expect(robots_checker.allowed?(nil)).to be true
+        expect(robots_checker.disallowed?(nil)).to be false
       end
     end
 
     context "with empty URL" do
       it "returns true for nil URL" do
-        expect(robots_checker.allowed?(nil)).to be true
+        expect(robots_checker.disallowed?(nil)).to be false
       end
 
       it "returns true for empty string URL" do
-        expect(robots_checker.allowed?("")).to be true
+        expect(robots_checker.disallowed?("")).to be false
       end
     end
   end

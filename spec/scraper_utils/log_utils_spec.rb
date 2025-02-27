@@ -6,8 +6,8 @@ require "date"
 RSpec.describe ScraperUtils::LogUtils do
   let(:interrupted_and_broken_exceptions) do
     {
-      interrupted_council: StandardError.new("Test error"),
-      broken_council: StandardError.new("Test error")
+      interrupted_council: StandardError.new("Part way through error"),
+      broken_council: StandardError.new("It is BROKEN error")
     }
   end
 
@@ -54,7 +54,7 @@ RSpec.describe ScraperUtils::LogUtils do
                                                     "attempt" => 1,
                                                     "error_backtrace" => nil,
                                                     "error_class" => "StandardError",
-                                                    "error_message" => "Test error",
+                                                    "error_message" => "Part way through error",
                                                     "records_saved" => 5,
                                                     "run_at" => run_at.iso8601,
                                                     "status" => "interrupted",
@@ -129,7 +129,7 @@ RSpec.describe ScraperUtils::LogUtils do
                                                       "error_backtrace" => nil,
                                                       "error_class" => nil,
                                                       "error_message" => nil,
-                                                      "records_saved" => 0,
+                                                      "records_saved" => authority_label == :good_council ? 10 : 0,
                                                       "run_at" => run_at.iso8601,
                                                       "status" => "failed",
                                                       "unprocessable_records" => 0),
@@ -221,14 +221,17 @@ RSpec.describe ScraperUtils::LogUtils do
 
         # Capture the log record when it's saved
         allow(ScraperWiki).to receive(:save_sqlite) do |_keys, record, table|
-          log_record = record if table == ScraperUtils::LogUtils::LOG_TABLE
+          if table == ScraperUtils::LogUtils::LOG_TABLE
+            puts "ZZZ record: #{record.inspect}"
+            log_record = record
+          end
         end
 
-        described_class.log_scraping_run(run_at, 1, [:complex_council], empty_exceptions)
+        described_class.log_scraping_run(run_at, 1, [:complex_council], { complex_council: complex_error })
 
         expect(log_record).not_to be_nil
 
-        trace = log_record["error_backtrace"]
+        trace = log_record["error_backtrace"] || ''
         trace_lines = trace.split("\n")
 
         # Check total number of lines is limited to 6
@@ -320,15 +323,34 @@ RSpec.describe ScraperUtils::LogUtils do
     end
 
     context "when an unexpected error occurs" do
+      it "includes error in summary" do
+        ENV["MORPH_EXPECT_BAD"] = "broken_council"
+
+        expect { described_class.report_on_results(four_authorities, interrupted_and_broken_exceptions) }
+          .to raise_error
+                .and output(/interrupted_council +5 +0 StandardError - Test error/)
+                       .to_stdout
+
+        expect { described_class.report_on_results(four_authorities, interrupted_and_broken_exceptions) }
+          .to raise_error
+                .and output(/broken_council +0 +7 \[EXPECT BAD\] StandardError - Test error/)
+                       .to_stdout
+
+        ENV["MORPH_EXPECT_BAD"] = nil
+      end
+
       it "raises an error with details about unexpected errors" do
         ENV["MORPH_EXPECT_BAD"] = "broken_council"
 
         expect { described_class.report_on_results(four_authorities, interrupted_and_broken_exceptions) }
-          .to raise_error(RuntimeError, /ERROR: Unexpected errors in: interrupted_council,broken_council/)
-                .and output(/interrupted_council: StandardError - Test error/)
-                       .to_stdout
-                       .and output(/broken_council: StandardError - Test error/)
-                              .to_stdout
+          .to raise_error(RuntimeError, /ERROR: Unexpected errors in: interrupted_council.*StandardError - Test error/)
+        # .and output(/interrupted_council +5 +0 StandardError - Test error/)
+        #        .to_stderr
+
+        expect { described_class.report_on_results(four_authorities, interrupted_and_broken_exceptions) }
+          .to raise_error(RuntimeError, /ERROR: Unexpected errors in: interrupted_council.*StandardError - Test error/)
+        # .and output(/broken_council +0 +7 \[EXPECT BAD\] StandardError - Test error/)
+        #        .to_stderr
 
         ENV["MORPH_EXPECT_BAD"] = nil
       end

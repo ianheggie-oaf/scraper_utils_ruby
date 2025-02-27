@@ -21,13 +21,11 @@ module ScraperUtils
       @delay = nil # Delay from last robots.txt check
     end
 
-    # Check if a URL is allowed based on robots.txt rules specific to our user agent
-    # Will ignore generic '*' rules but respect any crawl-delay directives
-    # The crawl_delay method will return delay applicable to the last URL checked
+    # Check if a URL is disallowed based on robots.txt rules specific to our user agent
     # @param url [String] The full URL to check
-    # @return [Boolean] true if allowed or robots.txt unavailable, false if specifically blocked
-    def allowed?(url)
-      return true unless url
+    # @return [Boolean] true if specifically blocked for our user agent, otherwise false
+    def disallowed?(url)
+      return false unless url
 
       uri = URI(url)
       domain = "#{uri.scheme}://#{uri.host}"
@@ -35,17 +33,17 @@ module ScraperUtils
 
       # Get or fetch robots.txt rules
       rules = get_rules(domain)
-      return true unless rules # If we can't get robots.txt, assume allowed
+      return false unless rules # If we can't get robots.txt, assume allowed
 
       # Store any delay found for this domain
       @delay = rules[:our_delay]
 
       # Check rules specific to our user agent
-      !matches_any_rule?(path, rules[:our_rules])
+      matches_any_rule?(path, rules[:our_rules])
     end
 
     # Returns the crawl delay (if any) that applied to the last URL checked
-    # Should be called after allowed? to get relevant delay
+    # Should be called after disallowed? to get relevant delay
     # @return [Integer, nil] The delay in seconds, or nil if no delay specified
     def crawl_delay
       @delay
