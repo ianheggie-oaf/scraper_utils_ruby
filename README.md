@@ -54,7 +54,8 @@ Or install it yourself for testing:
 
     $ gem install scraper_utils
 
-## Usage
+Usage
+-----
 
 ### Ruby Versions
 
@@ -113,7 +114,7 @@ The agent returned is configured using Mechanize hooks to implement the desired 
 
 ### Default Configuration
 
-By default, the Mechanize agent is configured with the following settings:
+By default, the Mechanize agent is configured with the following settings.
 
 ```ruby
 ScraperUtils::MechanizeUtils::AgentConfig.configure do |config|
@@ -127,7 +128,7 @@ end
 ```
 
 You can modify these global defaults before creating any Mechanize agents. These settings will be used for all Mechanize
-agents created by `ScraperUtils::MechanizeUtils.mechanize_agent` unless overridden by specific options.
+agents created by `ScraperUtils::MechanizeUtils.mechanize_agent` unless overridden by passing parameters to that method.
 
 ### Example updated `scraper.rb` file
 
@@ -178,47 +179,46 @@ class Scraper
       warn e.backtrace
       exceptions[authority_label] = e
     end
+
+    exceptions
   end
 
-  exceptions
-end
+  def self.selected_authorities
+    ScraperUtils::AuthorityUtils.selected_authorities(AUTHORITIES.keys)
+  end
 
-def self.selected_authorities
-  ScraperUtils::AuthorityUtils.selected_authorities(AUTHORITIES.keys)
-end
-
-def self.run(authorities)
-  puts "Scraping authorities: #{authorities.join(', ')}"
-  start_time = Time.now
-  exceptions = scrape(authorities, 1)
-  # Set start_time and attempt to the call above and log run below
-  ScraperUtils::LogUtils.log_scraping_run(
-    start_time,
-    1,
-    authorities,
-    exceptions
-  )
-
-  unless exceptions.empty?
-    puts "\n***************************************************"
-    puts "Now retrying authorities which earlier had failures"
-    puts exceptions.keys.join(", ").to_s
-    puts "***************************************************"
-
+  def self.run(authorities)
+    puts "Scraping authorities: #{authorities.join(', ')}"
     start_time = Time.now
-    exceptions = scrape(exceptions.keys, 2)
+    exceptions = scrape(authorities, 1)
     # Set start_time and attempt to the call above and log run below
     ScraperUtils::LogUtils.log_scraping_run(
       start_time,
-      2,
+      1,
       authorities,
       exceptions
     )
-  end
 
-  # Report on results, raising errors for unexpected conditions
-  ScraperUtils::LogUtils.report_on_results(authorities, exceptions)
-end
+    unless exceptions.empty?
+      puts "\n***************************************************"
+      puts "Now retrying authorities which earlier had failures"
+      puts exceptions.keys.join(", ").to_s
+      puts "***************************************************"
+
+      start_time = Time.now
+      exceptions = scrape(exceptions.keys, 2)
+      # Set start_time and attempt to the call above and log run below
+      ScraperUtils::LogUtils.log_scraping_run(
+        start_time,
+        2,
+        authorities,
+        exceptions
+      )
+    end
+
+    # Report on results, raising errors for unexpected conditions
+    ScraperUtils::LogUtils.report_on_results(authorities, exceptions)
+  end
 end
 
 if __FILE__ == $PROGRAM_NAME
@@ -288,7 +288,56 @@ ScraperUtils::DebugUtils.debug_page(page, "Checking search results page")
 ScraperUtils::DebugUtils.debug_selector(page, '.results-table', "Looking for development applications")
 ```
 
-## Development
+Interleaving Requests
+---------------------
+
+The `ScraperUtils::FiberScheduler` provides a lightweight utility that:
+
+* works on the other authorities whilst in the delay period for an authorities next request
+* thus optimizing the total scraper run time
+* allows you to increase the random delay for authorities without undue effect on total run time
+* For the curious, it uses [ruby fibers](https://ruby-doc.org/core-2.5.8/Fiber.html) rather than threads as that is
+  simpler to get right and debug!
+
+To enable change the scrape method in the example above to;
+
+```ruby
+
+def scrape(authorities, attempt)
+  ScraperUtils::FiberScheduler.reset!
+  exceptions = {}
+  authorities.each do |authority_label|
+    ScraperUtils::FiberScheduler.register_operation(authority_label) do
+      ScraperUtils::FiberScheduler.log "Collecting feed data for #{authority_label}, attempt: #{attempt}..."
+      begin
+        ScraperUtils::DataQualityMonitor.start_authority(authority_label)
+        YourScraper.scrape(authority_label) do |record|
+          begin
+            record["authority_label"] = authority_label.to_s
+            ScraperUtils::DbUtils.save_record(record)
+          rescue ScraperUtils::UnprocessableRecord => e
+            ScraperUtils::DataQualityMonitor.log_unprocessable_record(e, record)
+            exceptions[authority_label] = e
+          end
+        end
+      rescue StandardError => e
+        warn "#{authority_label}: ERROR: #{e}"
+        warn e.backtrace
+        exceptions[authority_label] = e
+      end
+    end # end of register_operation block
+  end
+  ScraperUtils::FiberScheduler.run_all
+  exceptions
+end
+```
+
+And use `ScraperUtils::FiberScheduler.log` instead of `puts` when logging within the authority processing code.
+This will prefix the output lines with the authority name, which is needed since the system will interleave the work and
+thus the output.
+
+Development
+-----------
 
 After checking out the repo, run `bin/setup` to install dependencies.
 Then, run `rake test` to run the tests.
@@ -304,13 +353,14 @@ to [rubygems.org](https://rubygems.org).
 
 NOTE: You need to use ruby 3.2.2 instead of 2.5.8 to release to OTP protected accounts.
 
-## Contributing
+Contributing
+------------
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/ianheggie-oaf/scraper_utils
 
 CHANGELOG.md is maintained by the author aiming to follow https://github.com/vweevers/common-changelog
 
-## License
+License
+-------
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
