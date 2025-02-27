@@ -44,6 +44,21 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
       end
     end
 
+    context "with default configuration" do
+      it "creates default configuration with 20% max load" do
+        expect { described_class.new }.to output(
+          /max_load=20.0%/
+        ).to_stdout
+      end
+    end
+
+    context "with compliant mode" do
+      it "caps max_load at 33% when compliant mode is true" do
+        config = described_class.new(max_load: 50.0, compliant_mode: true)
+        expect(config.max_load).to eq(33.0)
+      end
+    end
+
     context "with all options enabled" do
       it "creates configuration with all options and displays them" do
         expect do
@@ -52,10 +67,10 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
             timeout: 30,
             compliant_mode: true,
             random_delay: 5,
-            response_delay: true,
+            max_load: 15.0,
             disable_ssl_certificate_check: true
           )
-        end.to output(/Configuring Mechanize agent with timeout=30, australian_proxy=true, compliant_mode, random_delay=5, response_delay, disable_ssl_certificate_check/m).to_stdout
+        end.to output(/Configuring Mechanize agent with timeout=30, australian_proxy=true, compliant_mode, random_delay=5, max_load=15.0%, disable_ssl_certificate_check/m).to_stdout
       end
     end
 
