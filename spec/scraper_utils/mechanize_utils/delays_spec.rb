@@ -15,7 +15,7 @@ RSpec.describe ScraperUtils::MechanizeUtils do
       start_time = Time.now
       agent = described_class.mechanize_agent(
         random_delay: 1,
-        response_delay: true,
+        max_load: 20.0,
         compliant_mode: true
       )
       agent.get("https://example.com")

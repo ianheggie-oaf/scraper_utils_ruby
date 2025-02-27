@@ -27,7 +27,7 @@ RSpec.describe ScraperUtils::MechanizeUtils::AgentConfig do
     context "with no options" do
       it "creates default configuration and displays it" do
         expect { described_class.new }.to output(
-          "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, response_delay\n"
+          "Configuring Mechanize agent with timeout=60, australian_proxy=false, compliant_mode, random_delay=3, max_load=20.0%\n"
         ).to_stdout
       end
     end
